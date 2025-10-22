@@ -207,19 +207,6 @@ This is an **open project** following the Causal Chambers philosophy:
 
 ---
 
-## 📞 Contact
-
-**Project Lead**: [Your Name]  
-**Email**: [your_email@domain.com]  
-**Institution**: [Your Institution]
-
-**Causal Chambers Team**:  
-Juan L. Gamella: juan@causalchamber.ai  
-Website: https://causalchamber.org  
-GitHub: https://github.com/juangamella/causal-chamber
-
----
-
 ## 🙏 Acknowledgments
 
 This project builds on:
