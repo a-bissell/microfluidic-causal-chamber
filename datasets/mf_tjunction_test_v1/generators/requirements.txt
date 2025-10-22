@@ -1,0 +1,9 @@
+# Python dependencies for experiment protocol generation
+# These scripts generate .txt protocol files that are executed by the chamber control software
+
+# No dependencies needed for basic protocol generation
+# (generators only write text files with SET/WAIT/MSR commands)
+
+# Optional: For more complex protocol generation with randomization, etc.
+numpy>=1.24.0
+

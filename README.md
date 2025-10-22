@@ -24,6 +24,8 @@ The datasets are publicly available through a permissive [CC BY 4.0 license](htt
 
 Here you can also find the resources to build the chambers (see [`hardware/`](hardware/)).
 
+**NEW**: See [`hardware/microfluidic/`](hardware/microfluidic/) for a comprehensive design plan for a **microfluidic T-junction causal chamber** - extending the causal chambers concept to fluid dynamics and droplet generation!
+
 The code to reproduce the case studies in the original paper can be found in the separate [paper repository](https://github.com/juangamella/causal-chamber-paper).
 
 See also the [separate repository](https://github.com/juangamella/causal-chamber-package) for the `causalchamber` [package](https://github.com/juangamella/causal-chamber-package), which allows you to directly download datasets to your Python code, load ground-truth graphs, access the remote API, and use the physical simulators of the chambers.

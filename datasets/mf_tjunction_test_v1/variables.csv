@@ -1,0 +1,49 @@
+column_name,latex_name,description
+timestamp,,Unix timestamp of measurement (milliseconds since epoch)
+config,,Configuration of the chamber: "pressure_driven" or "flowrate_driven"
+counter,,Measurement counter for error detection and synchronization
+flag,,User-defined flag for marking experimental conditions
+intervention,,Has value 1 if this is first measurement after SET instruction, 0 otherwise
+P_cont,P_c,Continuous phase inlet pressure setpoint (Pa)
+P_disp,P_d,Dispersed phase inlet pressure setpoint (Pa)
+P_out,P_o,Outlet pressure setpoint (Pa)
+P_cont_meas,\tilde{P}_c,Measured continuous phase inlet pressure from sensor (Pa)
+P_disp_meas,\tilde{P}_d,Measured dispersed phase inlet pressure from sensor (Pa)
+P_out_meas,\tilde{P}_o,Measured outlet pressure from sensor (Pa)
+osr_cont,O_c,Oversampling rate for continuous phase pressure sensor
+osr_disp,O_d,Oversampling rate for dispersed phase pressure sensor
+osr_out,O_o,Oversampling rate for outlet pressure sensor
+v_cont,R_c,Reference voltage for continuous phase pressure sensor (V)
+v_disp,R_d,Reference voltage for dispersed phase pressure sensor (V)
+v_out,R_o,Reference voltage for outlet pressure sensor (V)
+f_droplet,f,Droplet formation frequency measured from video analysis (Hz)
+d_droplet,d,Mean droplet diameter measured from images (micrometers)
+L_droplet,L,Mean droplet length measured from images (micrometers)
+w_droplet,w,Mean droplet width measured from images (micrometers)
+spacing,s,Mean inter-droplet spacing measured from images (micrometers)
+v_droplet,v,Mean droplet velocity from image sequence (mm/s)
+n_droplets,N,Number of droplets detected in current measurement frame/sequence
+polydispersity,\text{PDI},Polydispersity index: coefficient of variation of droplet diameters
+regime,,Droplet formation regime: "dripping", "jetting", "coflow", or "unstable"
+camera,,Boolean flag: 1 if high-speed video was captured, 0 otherwise
+frame_rate,f_{\text{cam}},Camera frame rate during this measurement (fps)
+exposure,t_{\text{exp}},Camera exposure time (microseconds)
+Q_cont_calc,Q_c,Calculated/estimated continuous phase flow rate from pressure (microliters/min)
+Q_disp_calc,Q_d,Calculated/estimated dispersed phase flow rate from pressure (microliters/min)
+Q_ratio,\phi,Flow rate ratio Q_disp/Q_cont (dimensionless)
+Ca_cont,\text{Ca}_c,Capillary number for continuous phase: mu*v/sigma (dimensionless)
+Re_cont,\text{Re}_c,Reynolds number for continuous phase (dimensionless)
+We_cont,\text{We}_c,Weber number for continuous phase (dimensionless)
+mu_cont,\mu_c,Continuous phase dynamic viscosity (Pa·s)
+mu_disp,\mu_d,Dispersed phase dynamic viscosity (Pa·s)
+rho_cont,\rho_c,Continuous phase density (kg/m³)
+rho_disp,\rho_d,Dispersed phase density (kg/m³)
+sigma,\sigma,Interfacial tension between phases (N/m)
+temp,T,Temperature at chip location (degrees Celsius)
+w_main,w_m,Main channel width (micrometers) - nominal geometry
+w_disp_ch,w_d,Dispersed phase channel width (micrometers) - nominal geometry
+depth,h,Channel depth (micrometers) - nominal geometry
+fluid_pair,,Identifier for fluid pair used: e.g. "silicone_oil_50cSt_water"
+surfactant_conc,c_{\text{surf}},Surfactant concentration in continuous phase (% w/w)
+v_board,,Arduino/DAQ board reference voltage for diagnostics (V)
+
