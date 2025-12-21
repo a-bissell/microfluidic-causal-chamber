@@ -1,0 +1,58 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    oil_inlet
+    {
+        // Velocity is calculated from pressure gradient
+        // For pressure-driven flow with totalPressure BC
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    water_inlet
+    {
+        // Velocity is calculated from pressure gradient
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    outlet
+    {
+        // Allow flow to exit naturally
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    walls
+    {
+        // No-slip condition at solid walls
+        type            noSlip;
+    }
+
+    frontAndBack
+    {
+        // 2D simulation - empty boundary
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

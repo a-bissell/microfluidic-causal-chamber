@@ -1,0 +1,66 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# OpenFOAM 3D T-Junction Microfluidic Simulation
+# Parallel run script
+#------------------------------------------------------------------------------
+
+# Source OpenFOAM environment
+if [ -f /opt/openfoam/openfoam2306/etc/bashrc ]; then
+    source /opt/openfoam/openfoam2306/etc/bashrc
+elif [ -f /usr/lib/openfoam/openfoam2306/etc/bashrc ]; then
+    source /usr/lib/openfoam/openfoam2306/etc/bashrc
+elif [ -f ~/OpenFOAM/OpenFOAM-v2306/etc/bashrc ]; then
+    source ~/OpenFOAM/OpenFOAM-v2306/etc/bashrc
+fi
+
+cd "${0%/*}" || exit 1
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+#------------------------------------------------------------------------------
+echo "=========================================="
+echo "3D T-Junction Microfluidic Simulation"
+echo "=========================================="
+echo ""
+
+# Clean previous results
+./Allclean 2>/dev/null || true
+
+# Generate mesh
+echo "Step 1: Generating 3D mesh..."
+runApplication blockMesh
+
+echo "Step 2: Checking mesh..."
+runApplication checkMesh
+
+# Initialize fields
+echo "Step 3: Setting initial conditions..."
+cp 0/alpha.water 0/alpha.water.orig 2>/dev/null || true
+runApplication setFields
+
+# Decompose for parallel run
+echo "Step 4: Decomposing for parallel run..."
+runApplication decomposePar
+
+# Run in parallel
+echo "Step 5: Running interFoam in parallel..."
+echo "  Using 4 processors (adjust in decomposeParDict)"
+runParallel interFoam
+
+# Reconstruct
+echo "Step 6: Reconstructing results..."
+runApplication reconstructPar
+
+# Post-process
+echo "Step 7: Converting to VTK..."
+runApplication foamToVTK
+
+echo ""
+echo "=========================================="
+echo "3D Simulation complete!"
+echo "=========================================="
+echo ""
+echo "View results: paraview VTK/tjunction_3d.vtk.series"
+echo ""
+#------------------------------------------------------------------------------
+
+

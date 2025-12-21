@@ -1,0 +1,80 @@
+#!/bin/bash
+cd "${0%/*}" || exit 1
+
+echo "=========================================="
+echo "T-Junction Microfluidic Droplet Simulation"
+echo "=========================================="
+echo ""
+echo "Case: $(pwd)"
+echo ""
+
+# Source OpenFOAM
+if [ -f /opt/openfoam11/etc/bashrc ]; then
+    source /opt/openfoam11/etc/bashrc
+elif [ -f /opt/openfoam/openfoam2306/etc/bashrc ]; then
+    source /opt/openfoam/openfoam2306/etc/bashrc
+elif [ -f /usr/lib/openfoam/openfoam2306/etc/bashrc ]; then
+    source /usr/lib/openfoam/openfoam2306/etc/bashrc
+elif [ -n "$WM_PROJECT_DIR" ]; then
+    echo "OpenFOAM already sourced: $WM_PROJECT_DIR"
+else
+    echo "ERROR: OpenFOAM not found!"
+    echo "Install with: sudo apt install openfoam11"
+    exit 1
+fi
+
+echo "Using OpenFOAM: $WM_PROJECT_DIR"
+echo ""
+
+echo "Step 1: Cleaning previous results..."
+rm -rf [1-9]* 0.[0-9]* constant/polyMesh VTK log.* processor* postProcessing 2>/dev/null
+
+echo "Step 2: Generating mesh..."
+blockMesh > log.blockMesh 2>&1
+if [ $? -ne 0 ]; then
+    echo "ERROR: blockMesh failed. Check log.blockMesh"
+    exit 1
+fi
+echo "  Mesh generated successfully"
+
+echo "Step 3: Checking mesh..."
+checkMesh > log.checkMesh 2>&1
+
+echo "Step 4: Setting initial conditions..."
+cp 0/alpha.water 0/alpha.water.bak 2>/dev/null
+setFields > log.setFields 2>&1
+
+echo "Step 5: Running interFoam..."
+echo "  This may take 10-30 minutes..."
+interFoam > log.interFoam 2>&1 &
+PID=$!
+
+# Show progress
+while kill -0 $PID 2>/dev/null; do
+    if [ -f log.interFoam ]; then
+        TIME=$(grep "^Time = " log.interFoam | tail -1 | awk '{print $3}')
+        if [ -n "$TIME" ]; then
+            printf "\r  Time: %s s" "$TIME"
+        fi
+    fi
+    sleep 5
+done
+echo ""
+
+wait $PID
+STATUS=$?
+
+if [ $STATUS -eq 0 ]; then
+    echo "Step 6: Converting to VTK..."
+    foamToVTK > log.foamToVTK 2>&1
+    
+    echo ""
+    echo "=========================================="
+    echo "Simulation complete!"
+    echo "=========================================="
+    echo ""
+    echo "View results: paraview VTK/*.vtk"
+else
+    echo "ERROR: interFoam failed. Check log.interFoam"
+    exit 1
+fi

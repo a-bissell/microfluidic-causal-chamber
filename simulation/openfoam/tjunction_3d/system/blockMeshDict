@@ -1,0 +1,193 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// 3D T-Junction Geometry for Microfluidic Droplet Generation
+// ============================================================
+// 
+// This extends the 2D case to full 3D with proper channel depth
+// and wall boundary layers for accurate flow simulation.
+//
+// Key difference from 2D:
+//   - Multiple cells in z-direction (depth)
+//   - Top and bottom walls instead of empty patches
+//   - Boundary layer mesh for wall-resolved flow
+
+// ============================================================================
+// GEOMETRIC PARAMETERS (SI units: meters)
+// ============================================================================
+
+// Channel dimensions
+w_main      0.00015;        // Main channel width: 150 um
+w_disp      0.000075;       // Dispersed channel width: 75 um  
+depth       0.00008;        // Channel depth: 80 um
+
+// Channel lengths
+L_oil       0.0005;         // Oil inlet length: 500 um
+L_water     0.0003;         // Water inlet length: 300 um
+L_outlet    0.001;          // Outlet length: 1000 um
+
+// Coordinates (same as 2D case)
+// X: 0 -> 0.0005 -> 0.00065 -> 0.00165
+// Y: 0 -> 0.00015 -> 0.00045 (for water inlet)
+// Z: 0 -> 0.00008
+
+scale   1;
+
+vertices
+(
+    // Layer z = 0 (bottom)
+    // Row y = 0
+    ( 0         0           0        )  // 0
+    ( 0.0005    0           0        )  // 1
+    ( 0.00065   0           0        )  // 2
+    ( 0.00165   0           0        )  // 3
+    
+    // Row y = 0.00015 (top of main channel)
+    ( 0         0.00015     0        )  // 4
+    ( 0.0005    0.00015     0        )  // 5
+    ( 0.0005375 0.00015     0        )  // 6  
+    ( 0.0006125 0.00015     0        )  // 7  
+    ( 0.00065   0.00015     0        )  // 8
+    ( 0.00165   0.00015     0        )  // 9
+    
+    // Row y = 0.00045 (top of water inlet)
+    ( 0.0005375 0.00045     0        )  // 10
+    ( 0.0006125 0.00045     0        )  // 11
+    
+    // Layer z = 0.00008 (top)
+    // Row y = 0
+    ( 0         0           0.00008  )  // 12
+    ( 0.0005    0           0.00008  )  // 13
+    ( 0.00065   0           0.00008  )  // 14
+    ( 0.00165   0           0.00008  )  // 15
+    
+    // Row y = 0.00015
+    ( 0         0.00015     0.00008  )  // 16
+    ( 0.0005    0.00015     0.00008  )  // 17
+    ( 0.0005375 0.00015     0.00008  )  // 18
+    ( 0.0006125 0.00015     0.00008  )  // 19
+    ( 0.00065   0.00015     0.00008  )  // 20
+    ( 0.00165   0.00015     0.00008  )  // 21
+    
+    // Row y = 0.00045
+    ( 0.0005375 0.00045     0.00008  )  // 22
+    ( 0.0006125 0.00045     0.00008  )  // 23
+);
+
+blocks
+(
+    // For 3D, we use more cells in z-direction for proper resolution
+    // Target: ~5 um cell size in all directions
+    // z: 80 um / 5 um = 16 cells
+    
+    // Block 0: Oil inlet
+    hex (0 1 5 4 12 13 17 16) 
+        (100 30 16)
+        simpleGrading (1 1 1)
+    
+    // Block 1: Junction region
+    hex (1 2 8 5 13 14 20 17) 
+        (30 30 16)
+        simpleGrading (1 1 1)
+    
+    // Block 2: Outlet
+    hex (2 3 9 8 14 15 21 20) 
+        (200 30 16)
+        simpleGrading (1 1 1)
+    
+    // Block 3: Water inlet channel
+    hex (6 7 11 10 18 19 23 22) 
+        (15 60 16)
+        simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    oil_inlet
+    {
+        type    patch;
+        faces
+        (
+            (0 4 16 12)
+        );
+    }
+    
+    water_inlet
+    {
+        type    patch;
+        faces
+        (
+            (10 11 23 22)
+        );
+    }
+    
+    outlet
+    {
+        type    patch;
+        faces
+        (
+            (3 9 21 15)
+        );
+    }
+    
+    walls
+    {
+        type    wall;
+        faces
+        (
+            // Bottom walls (z = 0)
+            (0 1 5 4)
+            (1 2 8 5)
+            (2 3 9 8)
+            (6 7 11 10)
+            
+            // Top walls (z = depth)
+            (12 16 17 13)
+            (13 17 20 14)
+            (14 20 21 15)
+            (18 22 23 19)
+            
+            // Side walls (y = 0, main channel bottom)
+            (0 1 13 12)
+            (1 2 14 13)
+            (2 3 15 14)
+            
+            // Side walls (y = w_main, main channel top - excluding water opening)
+            (4 5 17 16)
+            (8 9 21 20)
+            
+            // Walls beside water inlet
+            (5 6 18 17)
+            (7 8 20 19)
+            
+            // Water channel side walls
+            (6 10 22 18)
+            (11 7 19 23)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //
+
+

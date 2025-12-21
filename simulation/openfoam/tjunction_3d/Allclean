@@ -1,0 +1,20 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Clean script for 3D T-Junction simulation
+#------------------------------------------------------------------------------
+
+cd "${0%/*}" || exit 1
+
+echo "Cleaning 3D T-Junction case..."
+
+rm -rf [1-9]* 0.[0-9]* 0.0[0-9]*
+rm -rf constant/polyMesh
+rm -rf VTK
+rm -f log.*
+rm -rf processor*
+rm -rf postProcessing
+
+echo "Done."
+#------------------------------------------------------------------------------
+
+

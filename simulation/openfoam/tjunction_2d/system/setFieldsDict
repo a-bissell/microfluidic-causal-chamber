@@ -1,0 +1,47 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      setFieldsDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Set initial field values for two-phase simulation
+// Domain is initially filled with oil (alpha.water = 0)
+// Water inlet channel is set to water (alpha.water = 1)
+
+defaultFieldValues
+(
+    volScalarFieldValue alpha.water 0       // Default: oil everywhere
+);
+
+regions
+(
+    // Fill water inlet channel with water
+    // Water channel geometry:
+    //   x: 0.0005375 to 0.0006125 (75 um wide, centered on junction)
+    //   y: 0.00015 to 0.00045 (water inlet length = 300 um)
+    //   z: 0 to 0.00008 (full depth)
+    
+    boxToCell
+    {
+        box (0.0005375 0.00015 0) (0.0006125 0.00045 0.00008);
+        
+        fieldValues
+        (
+            volScalarFieldValue alpha.water 1   // Water in inlet channel
+        );
+    }
+);
+
+// ************************************************************************* //
+
+

@@ -1,0 +1,85 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     interFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+// 3D simulations are slower - reduce end time for testing
+endTime         0.05;
+
+deltaT          1e-7;
+
+writeControl    adjustableRunTime;
+
+writeInterval   0.001;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  8;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   8;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+maxCo           0.5;
+maxAlphaCo      0.5;
+maxDeltaT       1e-5;
+
+functions
+{
+    fieldAverage1
+    {
+        type            fieldAverage;
+        libs            (fieldFunctionObjects);
+        writeControl    writeTime;
+        
+        fields
+        (
+            U { mean on; prime2Mean off; base time; }
+            alpha.water { mean on; prime2Mean off; base time; }
+        );
+    }
+    
+    volFieldValue1
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        
+        writeControl    timeStep;
+        writeInterval   100;
+        
+        writeFields     false;
+        log             true;
+        operation       volIntegrate;
+        fields          (alpha.water);
+    }
+}
+
+// ************************************************************************* //
+
+

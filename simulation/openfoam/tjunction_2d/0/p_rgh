@@ -1,0 +1,66 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p_rgh;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// p_rgh = p - rho*g*h (pressure minus hydrostatic component)
+// For microfluidic scales, hydrostatic pressure is negligible
+// so p_rgh ≈ p
+
+dimensions      [1 -1 -2 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    oil_inlet
+    {
+        // Continuous phase inlet pressure: 50 kPa gauge
+        // totalPressure = p + 0.5*rho*U^2
+        // For low velocities, this ≈ static pressure
+        type            totalPressure;
+        p0              uniform 50000;      // 50 kPa
+        value           uniform 50000;
+    }
+
+    water_inlet
+    {
+        // Dispersed phase inlet pressure: 30 kPa gauge
+        // Lower pressure than oil to create proper flow ratio
+        type            totalPressure;
+        p0              uniform 30000;      // 30 kPa
+        value           uniform 30000;
+    }
+
+    outlet
+    {
+        // Atmospheric pressure (gauge = 0)
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    walls
+    {
+        // Zero-flux for pressure at walls
+        type            fixedFluxPressure;
+        value           uniform 0;
+    }
+
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //
