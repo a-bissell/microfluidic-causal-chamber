@@ -7,7 +7,9 @@
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react'
-import { getKeygenAudio } from '../lib/keygenAudio'
+import { Settings } from 'lucide-react'
+import { getKeygenAudio, KeygenAudioParams, defaultAudioParams } from '../lib/keygenAudio'
+import KeygenParamsPanel from './KeygenParamsPanel'
 
 type KeygenPhase = 'normal' | 'glitch' | 'colorshift' | 'full'
 
@@ -37,7 +39,6 @@ interface KeygenVisualizerProps {
   progress: number
   terminalLines: string[]
   onExit: () => void
-  visualParams?: KeygenVisualParams
 }
 
 // Plasma color palette (demoscene style)
@@ -66,16 +67,39 @@ export default function KeygenVisualizer({
   progress, 
   terminalLines, 
   onExit,
-  visualParams = defaultVisualParams,
 }: KeygenVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>(0)
   const timeRef = useRef(0)
   const [audioStarted, setAudioStarted] = useState(false)
+  const [showParamsPanel, setShowParamsPanel] = useState(false)
+  
+  // Audio and visual parameters state
+  const [audioParams, setAudioParams] = useState<KeygenAudioParams>(defaultAudioParams)
+  const [visualParams, setVisualParams] = useState<KeygenVisualParams>(defaultVisualParams)
   
   // Use refs for params to avoid re-creating callbacks
   const paramsRef = useRef(visualParams)
   paramsRef.current = visualParams
+  
+  // Sync audio params with the audio engine
+  useEffect(() => {
+    const audio = getKeygenAudio()
+    audio.setParams(audioParams)
+  }, [audioParams])
+  
+  // Handle params change from panel
+  const handleParamsChange = useCallback((
+    newAudioParams: Partial<KeygenAudioParams>,
+    newVisualParams: Partial<KeygenVisualParams>
+  ) => {
+    if (Object.keys(newAudioParams).length > 0) {
+      setAudioParams(prev => ({ ...prev, ...newAudioParams }))
+    }
+    if (Object.keys(newVisualParams).length > 0) {
+      setVisualParams(prev => ({ ...prev, ...newVisualParams }))
+    }
+  }, [])
 
   // Start audio on first interaction
   const startAudio = useCallback(() => {
@@ -392,21 +416,59 @@ export default function KeygenVisualizer({
         className="w-full h-full"
       />
       
-      {/* Exit button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onExit()
-        }}
-        className="absolute top-2 right-2 px-2 py-1 text-xs font-mono bg-black/50 text-cyan-400 border border-cyan-400/50 rounded hover:bg-cyan-400/20 transition-colors z-10"
-      >
-        [ESC] EXIT
-      </button>
+      {/* Top bar with controls */}
+      <div className="absolute top-2 right-2 flex items-center gap-2 z-10">
+        {/* Settings button - only show in full keygen mode */}
+        {phase === 'full' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowParamsPanel(!showParamsPanel)
+            }}
+            className={`p-1.5 rounded bg-black/50 border transition-colors ${
+              showParamsPanel 
+                ? 'text-cyan-400 border-cyan-400 bg-cyan-400/20' 
+                : 'text-cyan-400/70 border-cyan-400/50 hover:bg-cyan-400/20 hover:text-cyan-400'
+            }`}
+            title="Adjust audio & visual parameters"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
+        
+        {/* Exit button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onExit()
+          }}
+          className="px-2 py-1 text-xs font-mono bg-black/50 text-cyan-400 border border-cyan-400/50 rounded hover:bg-cyan-400/20 transition-colors"
+        >
+          [ESC] EXIT
+        </button>
+      </div>
+
+      {/* Parameters Panel */}
+      {showParamsPanel && phase === 'full' && (
+        <KeygenParamsPanel
+          audioParams={audioParams}
+          visualParams={visualParams}
+          onParamsChange={handleParamsChange}
+          onClose={() => setShowParamsPanel(false)}
+        />
+      )}
 
       {/* Click to start audio hint */}
       {!audioStarted && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-mono text-cyan-400/50 animate-pulse z-10">
           Click to enable audio
+        </div>
+      )}
+      
+      {/* Phase indicator */}
+      {phase !== 'normal' && phase !== 'full' && (
+        <div className="absolute bottom-2 left-2 text-xs font-mono text-purple-400/70 z-10">
+          ▓▒░ {phase.toUpperCase()} ░▒▓
         </div>
       )}
     </div>
