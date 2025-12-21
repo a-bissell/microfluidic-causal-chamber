@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="dropletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Droplet shape -->
+  <path 
+    d="M32 8 C32 8 48 28 48 40 C48 50 41 56 32 56 C23 56 16 50 16 40 C16 28 32 8 32 8 Z" 
+    fill="url(#dropletGrad)" 
+    filter="url(#glow)"
+  />
+  <!-- Highlight -->
+  <ellipse cx="26" cy="36" rx="4" ry="6" fill="white" opacity="0.3" />
+</svg>
+
