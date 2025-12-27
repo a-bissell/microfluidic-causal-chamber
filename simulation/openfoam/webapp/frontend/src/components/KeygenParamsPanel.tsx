@@ -26,7 +26,7 @@ function Slider({ label, value, min, max, step = 0.1, onChange }: SliderProps) {
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-xs">
         <span className="text-white/70">{label}</span>
-        <span className="text-cyan-400 font-mono">{value.toFixed(1)}</span>
+        <span className="text-white/90 font-mono">{value.toFixed(1)}</span>
       </div>
       <input
         type="range"
@@ -52,7 +52,7 @@ function Toggle({ label, checked, onChange }: ToggleProps) {
     <label className="flex items-center gap-2 cursor-pointer">
       <div
         className={`w-8 h-4 rounded-full transition-colors ${
-          checked ? 'bg-cyan-500' : 'bg-white/20'
+          checked ? 'bg-white/70' : 'bg-white/20'
         }`}
         onClick={() => onChange(!checked)}
       >
@@ -183,12 +183,12 @@ export default function KeygenParamsPanel({
 
   return (
     <div
-      className="keygen-params-panel absolute top-12 right-3 w-72 max-h-[80%] overflow-y-auto rounded-lg bg-black/90 border border-cyan-500/30 p-4 z-20"
+      className="keygen-params-panel absolute top-12 right-3 w-72 max-h-[80%] overflow-y-auto rounded-lg bg-black/90 border border-white/20 p-4 z-20"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-cyan-400 font-mono uppercase tracking-wider">
+        <h3 className="text-sm font-bold text-white/90 font-mono uppercase tracking-wider">
           Parameters
         </h3>
         <button
@@ -216,7 +216,7 @@ export default function KeygenParamsPanel({
             <button
               key={preset}
               onClick={() => applyPreset(preset)}
-              className="px-2 py-1 text-xs font-mono rounded bg-white/10 text-white/70 hover:bg-cyan-500/30 hover:text-cyan-400 transition-colors capitalize"
+              className="px-2 py-1 text-xs font-mono rounded bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors capitalize"
             >
               {preset}
             </button>
@@ -286,7 +286,7 @@ export default function KeygenParamsPanel({
                   onClick={() => onParamsChange({ waveform: wave }, {})}
                   className={`px-2 py-1 text-xs font-mono rounded transition-colors ${
                     audioParams.waveform === wave
-                      ? 'bg-cyan-500 text-black'
+                      ? 'bg-white/80 text-black'
                       : 'bg-white/10 text-white/70 hover:bg-white/20'
                   }`}
                 >
@@ -315,12 +315,12 @@ export default function KeygenParamsPanel({
       {/* Visual Section */}
       <div className="mb-4">
         <div className="text-xs mb-3 uppercase tracking-wider flex items-center gap-2">
-          <span className="text-cyan-400">◈</span>
-          <span className="text-cyan-400">Visual</span>
+          <span className="text-white/70">◈</span>
+          <span className="text-white/70">Visual</span>
         </div>
         <div className="space-y-3">
           <Slider
-            label="Scroll Speed"
+            label="Flow Speed"
             value={visualParams.scrollSpeed}
             min={0.5}
             max={3}
@@ -342,7 +342,7 @@ export default function KeygenParamsPanel({
             onChange={(v) => onParamsChange({}, { waveFrequency: v })}
           />
           <Slider
-            label="Color Speed"
+            label="Density Cycle"
             value={visualParams.colorCycleSpeed}
             min={0.5}
             max={3}
@@ -362,11 +362,6 @@ export default function KeygenParamsPanel({
               label="Stars"
               checked={visualParams.starfieldEnabled}
               onChange={(v) => onParamsChange({}, { starfieldEnabled: v })}
-            />
-            <Toggle
-              label="Scanlines"
-              checked={visualParams.scanlines}
-              onChange={(v) => onParamsChange({}, { scanlines: v })}
             />
           </div>
         </div>

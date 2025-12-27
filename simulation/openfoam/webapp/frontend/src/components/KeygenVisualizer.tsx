@@ -2,8 +2,8 @@
  * Keygen Mode Visualizer
  * 
  * Demoscene-inspired visual effects that activate during simulation
- * Features: plasma effects, scrolling text, starfield, and more
- * Now with real-time parameter customization!
+ * Features: ASCII wave animations, plasma effects, 3D text, starfield
+ * Focus on ASCII character art with size/position waves for visual depth
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react'
@@ -21,7 +21,6 @@ export interface KeygenVisualParams {
   colorCycleSpeed: number
   glitchIntensity: number
   starfieldEnabled: boolean
-  scanlines: boolean
 }
 
 export const defaultVisualParams: KeygenVisualParams = {
@@ -31,7 +30,6 @@ export const defaultVisualParams: KeygenVisualParams = {
   colorCycleSpeed: 1,
   glitchIntensity: 0.3,
   starfieldEnabled: true,
-  scanlines: true,
 }
 
 interface KeygenVisualizerProps {
@@ -41,26 +39,8 @@ interface KeygenVisualizerProps {
   onExit: () => void
 }
 
-// Plasma color palette (demoscene style)
-const PALETTE = [
-  '#000033', '#000066', '#000099', '#0000cc', '#0000ff',
-  '#0033ff', '#0066ff', '#0099ff', '#00ccff', '#00ffff',
-  '#00ffcc', '#00ff99', '#00ff66', '#00ff33', '#00ff00',
-  '#33ff00', '#66ff00', '#99ff00', '#ccff00', '#ffff00',
-  '#ffcc00', '#ff9900', '#ff6600', '#ff3300', '#ff0000',
-  '#ff0033', '#ff0066', '#ff0099', '#ff00cc', '#ff00ff',
-  '#cc00ff', '#9900ff', '#6600ff', '#3300ff', '#0000ff',
-]
-
-// Scrolltext messages
-const SCROLL_TEXTS = [
-  '>>> MICROFLUIDIC SIMULATION RUNNING <<<',
-  'GREETS TO: OpenFOAM • ParaView • CFD Community',
-  'T-JUNCTION DROPLET GENERATOR v1.0',
-  '♦ VOF METHOD ♦ CSF MODEL ♦ PIMPLE ALGORITHM ♦',
-  'SOLVING NAVIER-STOKES EQUATIONS...',
-  '>>> DROPLETS FORMING AT THE JUNCTION <<<',
-]
+// ASCII characters for wave effects (ordered by visual density - light to dark)
+const ASCII_CHARS = ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'
 
 export default function KeygenVisualizer({ 
   phase, 
@@ -109,47 +89,152 @@ export default function KeygenVisualizer({
     }
   }, [audioStarted])
 
-  // Plasma effect with configurable wave
-  const drawPlasma = useCallback((
-    ctx: CanvasRenderingContext2D, 
-    width: number, 
-    height: number, 
+  // Draw ASCII wave field - characters that undulate in size/position (greyscale density)
+  const drawASCIIWaveField = useCallback((
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
     time: number,
-    colorSpeed: number,
-    waveAmp: number,
-    waveFreq: number
+    intensity: number, // 0-1 transition intensity
+    params: KeygenVisualParams
   ) => {
-    const imageData = ctx.createImageData(width, height)
-    const data = imageData.data
+    const cols = Math.floor(width / 14)
+    const rows = Math.floor(height / 18)
     
-    const adjustedTime = time * colorSpeed
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        // Classic plasma formula with configurable parameters
-        const v1 = Math.sin(x / (16 / waveFreq) + adjustedTime)
-        const v2 = Math.sin((y / (8 / waveFreq) + adjustedTime) / 2)
-        const v3 = Math.sin((x / (16 / waveFreq) + y / (8 / waveFreq) + adjustedTime) / 2)
-        const v4 = Math.sin(Math.sqrt(x * x + y * y) / (8 / waveFreq) + adjustedTime)
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const x = col * 14 + 7
+        const y = row * 18 + 9
         
-        const value = (v1 + v2 + v3 + v4 + 4) / 8
-        const colorIndex = Math.floor(value * (PALETTE.length - 1))
-        const color = PALETTE[colorIndex]
+        // Multiple wave functions for complexity
+        const wave1 = Math.sin(col * 0.2 + time * params.scrollSpeed) 
+        const wave2 = Math.sin(row * 0.15 + time * params.scrollSpeed * 0.7)
+        const wave3 = Math.sin((col + row) * 0.1 + time * params.colorCycleSpeed)
+        const wave4 = Math.sin(Math.sqrt(col * col + row * row) * 0.08 + time * 0.8)
         
-        // Parse hex color
-        const r = parseInt(color.slice(1, 3), 16)
-        const g = parseInt(color.slice(3, 5), 16)
-        const b = parseInt(color.slice(5, 7), 16)
+        // Combine waves
+        const combinedWave = (wave1 + wave2 + wave3 + wave4) / 4
         
-        const i = (y * width + x) * 4
-        data[i] = r
-        data[i + 1] = g
-        data[i + 2] = b
-        data[i + 3] = 255
+        // Character based on wave value (density mapping)
+        const charIndex = Math.floor((combinedWave + 1) / 2 * (ASCII_CHARS.length - 1))
+        const char = ASCII_CHARS[Math.max(0, Math.min(charIndex, ASCII_CHARS.length - 1))]
+        
+        // Font size varies with wave for depth effect
+        const baseSize = 11
+        const sizeWave = Math.sin(col * 0.25 - row * 0.15 + time * 1.5) * params.waveAmplitude * 0.25
+        const fontSize = Math.max(6, baseSize + sizeWave * intensity)
+        
+        // Position offset for 3D-like depth
+        const depthOffset = combinedWave * params.waveAmplitude * intensity
+        const xOffset = Math.sin(row * 0.4 + time * 0.8) * depthOffset * 0.25
+        const yOffset = depthOffset * 0.4
+        
+        // Greyscale brightness based on density (denser chars = brighter)
+        const brightness = 30 + (charIndex / ASCII_CHARS.length) * 60
+        const alpha = 0.4 + intensity * 0.6
+        
+        ctx.font = `${fontSize}px "JetBrains Mono", monospace`
+        ctx.fillStyle = `rgba(${brightness + 20}, ${brightness + 20}, ${brightness}, ${alpha})`
+        ctx.fillText(char, x + xOffset, y + yOffset)
       }
     }
+  }, [])
+
+  // Draw terminal text with progressive ASCII corruption (greyscale)
+  const drawTerminalWithTransition = useCallback((
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    lines: string[],
+    corruptionLevel: number, // 0 = normal, 1 = fully ASCII
+    time: number,
+    params: KeygenVisualParams
+  ) => {
+    const visibleLines = lines.slice(-18)
+    const lineHeight = 14
+    const startY = 25
+    const startX = 15
+    const maxWidth = Math.min(450, width - 30)
     
-    ctx.putImageData(imageData, 0, 0)
+    // Background with variable transparency
+    const bgAlpha = 0.75 - corruptionLevel * 0.35
+    ctx.fillStyle = `rgba(8, 8, 12, ${bgAlpha})`
+    ctx.fillRect(10, 10, maxWidth + 10, height - 50)
+    
+    // Border - greyscale, fades with corruption
+    const borderBright = 100 - corruptionLevel * 50
+    ctx.strokeStyle = `rgba(${borderBright}, ${borderBright}, ${borderBright + 10}, ${0.6 - corruptionLevel * 0.3})`
+    ctx.lineWidth = 1
+    ctx.strokeRect(10, 10, maxWidth + 10, height - 50)
+    
+    visibleLines.forEach((line, i) => {
+      const y = startY + i * lineHeight
+      
+      // Determine if this line should be corrupted
+      const lineCorruption = Math.max(0, corruptionLevel - (i / visibleLines.length) * 0.5)
+      
+      // Base brightness levels for different content types
+      let baseBrightness = 130
+      if (line.includes('Time =')) baseBrightness = 200
+      else if (line.includes('Courant')) baseBrightness = 180
+      else if (line.includes('ERROR')) baseBrightness = 220
+      else if (line.includes('DROPLET') || line.includes('droplet')) baseBrightness = 200
+      
+      if (lineCorruption < 0.3) {
+        // Mostly normal text with slight glitch
+        ctx.font = '11px "JetBrains Mono", monospace'
+        const xOffset = lineCorruption > 0.1 ? (Math.random() - 0.5) * lineCorruption * 8 : 0
+        ctx.fillStyle = `rgb(${baseBrightness}, ${baseBrightness}, ${baseBrightness})`
+        ctx.fillText(line.slice(0, 55), startX + xOffset, y)
+      } else if (lineCorruption < 0.7) {
+        // Partially corrupted - mix of normal and ASCII
+        ctx.font = '11px "JetBrains Mono", monospace'
+        const chars = line.slice(0, 55).split('')
+        let x = startX
+        
+        chars.forEach((char, j) => {
+          const charCorrupt = Math.random() < lineCorruption - 0.3
+          const waveOffset = Math.sin(j * 0.3 + time * 2) * lineCorruption * 4
+          
+          if (charCorrupt && char !== ' ') {
+            // Replace with wave-based ASCII
+            const waveVal = Math.sin(j * 0.5 + i * 0.3 + time * 3)
+            const asciiIdx = Math.floor((waveVal + 1) / 2 * 30) + 30
+            const replacementChar = ASCII_CHARS[Math.min(asciiIdx, ASCII_CHARS.length - 1)]
+            // Greyscale brightness based on character density
+            const bright = 80 + (asciiIdx / ASCII_CHARS.length) * 120
+            ctx.fillStyle = `rgb(${bright}, ${bright}, ${bright})`
+            ctx.fillText(replacementChar, x, y + waveOffset)
+          } else {
+            ctx.fillStyle = `rgb(${baseBrightness}, ${baseBrightness}, ${baseBrightness})`
+            ctx.fillText(char, x, y + waveOffset * 0.3)
+          }
+          x += 6.6
+        })
+      } else {
+        // Heavily corrupted - almost all ASCII with wave motion
+        const fontSize = 10 + Math.sin(i + time * 2) * 2
+        ctx.font = `${fontSize}px "JetBrains Mono", monospace`
+        
+        const chars = line.slice(0, 55).split('')
+        let x = startX
+        
+        chars.forEach((char, j) => {
+          const waveY = Math.sin(j * 0.4 + time * 3) * params.waveAmplitude * 0.4
+          const waveX = Math.cos(j * 0.3 + time * 2) * 2
+          
+          // Convert to density-based ASCII
+          const density = ((j + i) * 17 + Math.floor(time * 10)) % ASCII_CHARS.length
+          const displayChar = char === ' ' ? ' ' : ASCII_CHARS[density]
+          
+          // Greyscale based on density
+          const bright = 60 + (density / ASCII_CHARS.length) * 140
+          ctx.fillStyle = `rgb(${bright}, ${bright}, ${bright})`
+          ctx.fillText(displayChar, x + waveX, y + waveY)
+          x += 6.6
+        })
+      }
+    })
   }, [])
 
   // Starfield effect
@@ -166,14 +251,11 @@ export default function KeygenVisualizer({
     }
   }, [])
 
-  const drawStarfield = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number, speed: number) => {
+  const drawStarfield = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number, speed: number, alpha: number = 1) => {
     if (!paramsRef.current.starfieldEnabled) return
     
     const cx = width / 2
     const cy = height / 2
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'
-    ctx.fillRect(0, 0, width, height)
     
     for (const star of stars.current) {
       star.z -= speed
@@ -188,7 +270,7 @@ export default function KeygenVisualizer({
       const sy = (star.y / star.z) * 200 + cy
       const size = (1 - star.z / 1000) * 3
       
-      const brightness = 1 - star.z / 1000
+      const brightness = (1 - star.z / 1000) * alpha
       ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`
       ctx.beginPath()
       ctx.arc(sx, sy, size, 0, Math.PI * 2)
@@ -196,112 +278,6 @@ export default function KeygenVisualizer({
     }
   }, [])
 
-  // Scrolling text with wave effect
-  const drawScrollText = useCallback((
-    ctx: CanvasRenderingContext2D, 
-    width: number, 
-    height: number, 
-    time: number,
-    scrollSpeed: number,
-    waveAmp: number
-  ) => {
-    const text = SCROLL_TEXTS.join('     ♦     ')
-    const speed = 100 * scrollSpeed // pixels per second
-    const offset = (time * speed) % (text.length * 16)
-    
-    ctx.font = 'bold 14px "JetBrains Mono", monospace'
-    ctx.shadowColor = '#00ffff'
-    ctx.shadowBlur = 10
-    
-    // Draw each character with wave effect
-    const textWidth = ctx.measureText(text).width
-    const baseY = height - 20
-    
-    for (let i = 0; i < text.length; i++) {
-      const charX = i * 10 - offset
-      // Wave effect on Y position
-      const waveY = Math.sin((charX + time * 100) / 30) * waveAmp
-      
-      // Color cycling per character
-      const hue = (i * 10 + time * 50) % 360
-      ctx.fillStyle = `hsl(${hue}, 100%, 60%)`
-      
-      ctx.fillText(text[i], charX, baseY + waveY)
-      // Second copy for seamless loop
-      ctx.fillText(text[i], charX + textWidth, baseY + waveY)
-    }
-    
-    ctx.shadowBlur = 0
-  }, [])
-
-  // Terminal overlay with glitch effect
-  const drawTerminalOverlay = useCallback((
-    ctx: CanvasRenderingContext2D, 
-    width: number, 
-    height: number, 
-    lines: string[],
-    glitchIntensity: number
-  ) => {
-    const effectiveGlitch = glitchIntensity * paramsRef.current.glitchIntensity
-    
-    // Semi-transparent background
-    ctx.fillStyle = `rgba(0, 0, 0, ${0.3 + effectiveGlitch * 0.3})`
-    ctx.fillRect(10, 10, Math.min(400, width - 20), height - 60)
-    
-    // Border with glitch color shift
-    const borderHue = effectiveGlitch > 0.5 ? 300 : 180 // magenta or cyan
-    ctx.strokeStyle = `hsl(${borderHue + Math.random() * effectiveGlitch * 60}, 100%, 50%)`
-    ctx.lineWidth = 1
-    ctx.strokeRect(10, 10, Math.min(400, width - 20), height - 60)
-    
-    // Terminal lines
-    ctx.font = '11px "JetBrains Mono", monospace'
-    const visibleLines = lines.slice(-15)
-    
-    visibleLines.forEach((line, i) => {
-      // Glitch offset
-      const xOffset = effectiveGlitch > 0 ? (Math.random() - 0.5) * effectiveGlitch * 20 : 0
-      const yOffset = effectiveGlitch > 0.3 ? (Math.random() - 0.5) * effectiveGlitch * 5 : 0
-      
-      // Random glitch skipping
-      if (effectiveGlitch > 0.5 && Math.random() < effectiveGlitch * 0.3) {
-        return // Skip this line for glitch effect
-      }
-      
-      // Color based on content
-      if (line.includes('ERROR') || line.includes('FATAL')) {
-        ctx.fillStyle = '#ff4444'
-      } else if (line.includes('Time =')) {
-        ctx.fillStyle = '#00ffff'
-      } else if (line.includes('Courant')) {
-        ctx.fillStyle = '#00ff00'
-      } else {
-        ctx.fillStyle = '#aaaaaa'
-      }
-      
-      // RGB split effect during heavy glitch
-      if (effectiveGlitch > 0.7) {
-        ctx.fillStyle = '#ff0000'
-        ctx.fillText(line.slice(0, 50), 18 + xOffset, 30 + i * 14 + yOffset)
-        ctx.fillStyle = '#00ff00'
-        ctx.fillText(line.slice(0, 50), 20 + xOffset, 30 + i * 14 + yOffset)
-        ctx.fillStyle = '#0000ff'
-        ctx.fillText(line.slice(0, 50), 22 + xOffset, 30 + i * 14 + yOffset)
-      } else {
-        ctx.fillText(line.slice(0, 50), 20 + xOffset, 30 + i * 14 + yOffset)
-      }
-    })
-  }, [])
-
-  // Scanline effect
-  const drawScanlines = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    if (!paramsRef.current.scanlines) return
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.03)'
-    for (let y = 0; y < height; y += 2) {
-      ctx.fillRect(0, y, width, 1)
-    }
-  }, [])
 
   // Main render loop
   useEffect(() => {
@@ -330,70 +306,51 @@ export default function KeygenVisualizer({
       const { width, height } = canvas
       const params = paramsRef.current
 
-      // Clear
-      ctx.fillStyle = '#0a0a0f'
+      // Clear with dark background
+      ctx.fillStyle = '#0a0a12'
       ctx.fillRect(0, 0, width, height)
 
-      // Draw based on phase
-      if (phase === 'glitch') {
-        // Glitchy transition - mix terminal with noise
-        drawStarfield(ctx, width, height, 5 + progress * 10)
-        drawTerminalOverlay(ctx, width, height, terminalLines, progress)
+      // Draw based on phase with smooth transitions
+      if (phase === 'normal') {
+        // Pure terminal - should not reach here but just in case
+        drawTerminalWithTransition(ctx, width, height, terminalLines, 0, time, params)
+        
+      } else if (phase === 'glitch') {
+        // Smooth transition: terminal starts corrupting, stars appear
+        const starAlpha = progress * 0.25
+        drawStarfield(ctx, width, height, 3 + progress * 5, starAlpha)
+        
+        // Terminal with increasing corruption
+        drawTerminalWithTransition(ctx, width, height, terminalLines, progress * 0.5, time, params)
         
       } else if (phase === 'colorshift') {
-        // RGB shift transition
-        ctx.save()
-        ctx.globalAlpha = progress
-        drawPlasma(
-          ctx, 
-          Math.floor(width / 4), 
-          Math.floor(height / 4), 
-          time,
-          params.colorCycleSpeed,
-          params.waveAmplitude,
-          params.waveFrequency
-        )
-        ctx.drawImage(canvas, 0, 0, width / 4, height / 4, 0, 0, width, height)
-        ctx.restore()
-        
-        ctx.globalAlpha = 1 - progress
-        drawTerminalOverlay(ctx, width, height, terminalLines, 1 - progress)
+        // ASCII field fades in behind corrupting terminal
+        const asciiAlpha = progress
+        ctx.globalAlpha = asciiAlpha * 0.4
+        drawASCIIWaveField(ctx, width, height, time, progress, params)
         ctx.globalAlpha = 1
+        
+        // Stars getting faster
+        drawStarfield(ctx, width, height, 8 + progress * 7, 0.25 + progress * 0.15)
+        
+        // Terminal continues corrupting
+        const corruption = 0.5 + progress * 0.5
+        drawTerminalWithTransition(ctx, width, height, terminalLines, corruption, time, params)
         
       } else if (phase === 'full') {
-        // Full keygen mode
-        // Background plasma (scaled for performance)
-        const plasmaCanvas = document.createElement('canvas')
-        plasmaCanvas.width = Math.floor(width / 4)
-        plasmaCanvas.height = Math.floor(height / 4)
-        const plasmaCtx = plasmaCanvas.getContext('2d')
-        if (plasmaCtx) {
-          drawPlasma(
-            plasmaCtx, 
-            plasmaCanvas.width, 
-            plasmaCanvas.height, 
-            time,
-            params.colorCycleSpeed,
-            params.waveAmplitude,
-            params.waveFrequency
-          )
-          ctx.drawImage(plasmaCanvas, 0, 0, plasmaCanvas.width, plasmaCanvas.height, 0, 0, width, height)
-        }
+        // Full keygen mode - ASCII density waves dominate
         
-        // Starfield overlay
-        ctx.globalAlpha = 0.5
-        drawStarfield(ctx, width, height, 15)
+        // Background ASCII wave field
+        ctx.globalAlpha = 0.7
+        drawASCIIWaveField(ctx, width, height, time, 1, params)
         ctx.globalAlpha = 1
         
-        // Terminal overlay (semi-transparent)
-        drawTerminalOverlay(ctx, width, height, terminalLines, 0)
+        // Subtle starfield overlay
+        drawStarfield(ctx, width, height, 10, 0.3)
         
-        // Scrolling text with wave
-        drawScrollText(ctx, width, height, time, params.scrollSpeed, params.waveAmplitude)
+        // Terminal still visible but heavily stylized
+        drawTerminalWithTransition(ctx, width, height, terminalLines, 0.85, time, params)
       }
-
-      // Scanline effect
-      drawScanlines(ctx, width, height)
 
       animationRef.current = requestAnimationFrame(animate)
     }
@@ -404,7 +361,7 @@ export default function KeygenVisualizer({
       cancelAnimationFrame(animationRef.current)
       window.removeEventListener('resize', resize)
     }
-  }, [phase, progress, terminalLines, drawPlasma, drawStarfield, drawScrollText, drawTerminalOverlay, drawScanlines, initStars])
+  }, [phase, progress, terminalLines, drawASCIIWaveField, drawTerminalWithTransition, drawStarfield, initStars])
 
   return (
     <div 
@@ -427,8 +384,8 @@ export default function KeygenVisualizer({
             }}
             className={`p-1.5 rounded bg-black/50 border transition-colors ${
               showParamsPanel 
-                ? 'text-cyan-400 border-cyan-400 bg-cyan-400/20' 
-                : 'text-cyan-400/70 border-cyan-400/50 hover:bg-cyan-400/20 hover:text-cyan-400'
+                ? 'text-white border-white/50 bg-white/10' 
+                : 'text-white/70 border-white/30 hover:bg-white/10 hover:text-white'
             }`}
             title="Adjust audio & visual parameters"
           >
@@ -442,7 +399,7 @@ export default function KeygenVisualizer({
             e.stopPropagation()
             onExit()
           }}
-          className="px-2 py-1 text-xs font-mono bg-black/50 text-cyan-400 border border-cyan-400/50 rounded hover:bg-cyan-400/20 transition-colors"
+          className="px-2 py-1 text-xs font-mono bg-black/50 text-white/80 border border-white/30 rounded hover:bg-white/10 transition-colors"
         >
           [ESC] EXIT
         </button>
@@ -460,15 +417,16 @@ export default function KeygenVisualizer({
 
       {/* Click to start audio hint */}
       {!audioStarted && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-mono text-cyan-400/50 animate-pulse z-10">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-mono text-white/40 animate-pulse z-10">
           Click to enable audio
         </div>
       )}
       
-      {/* Phase indicator */}
+      {/* Phase indicator - subtle during transitions */}
       {phase !== 'normal' && phase !== 'full' && (
-        <div className="absolute bottom-2 left-2 text-xs font-mono text-purple-400/70 z-10">
-          ▓▒░ {phase.toUpperCase()} ░▒▓
+        <div className="absolute bottom-2 left-2 text-xs font-mono text-white/30 z-10">
+          {phase === 'glitch' && '░▒▓'}
+          {phase === 'colorshift' && '▓▒░ INITIALIZING ░▒▓'}
         </div>
       )}
     </div>

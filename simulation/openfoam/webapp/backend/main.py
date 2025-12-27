@@ -24,7 +24,9 @@ from websocket_manager import ConnectionManager
 
 # Configuration
 OPENFOAM_CASES_DIR = Path.home() / "openfoam_cases"
-TEMPLATE_CASE_DIR = Path.home() / "tjunction_2d_new"
+# Template case directory - relative to this file's location
+_BACKEND_DIR = Path(__file__).parent.resolve()
+TEMPLATE_CASE_DIR = _BACKEND_DIR.parent.parent / "tjunction_2d"
 
 
 @asynccontextmanager
