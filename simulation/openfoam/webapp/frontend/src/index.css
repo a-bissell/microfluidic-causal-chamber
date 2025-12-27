@@ -3,309 +3,176 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light mode (default) */
   :root {
-    --background: 222 47% 10%;
-    --foreground: 214 32% 91%;
-    --card: 217 47% 13%;
-    --card-foreground: 214 32% 91%;
-    --primary: 217 91% 60%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+    --primary: 145 22% 47%;
+    --primary-foreground: 0 0% 7%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 7%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 43%;
+    --accent: 145 30% 82%;
+    --accent-foreground: 0 0% 7%;
+    --border: 0 0% 91%;
+    --input: 0 0% 91%;
+    --ring: 145 22% 47%;
+    --radius: 1.5rem;
+  }
+
+  /* Dark mode */
+  .dark {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 100%;
+    --primary: 145 22% 47%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 213 47% 24%;
-    --secondary-foreground: 214 32% 91%;
-    --accent: 187 93% 43%;
-    --accent-foreground: 222 47% 10%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 213 47% 24%;
-    --input: 213 47% 24%;
-    --ring: 217 91% 60%;
-    --radius: 0.5rem;
+    --secondary: 0 0% 11%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 53%;
+    --accent: 145 22% 27%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 145 22% 47%;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-secondary-900 antialiased;
+    @apply dark:bg-secondary-900 dark:text-white;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-border/50 rounded-lg shadow-xl;
+  /* Card base styles */
+  .card {
+    @apply rounded-card bg-white dark:bg-secondary-800;
+    @apply transition-colors duration-200;
   }
 
-  .glow-primary {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  /* Mint card variant - Light mode island */
+  .card-mint {
+    @apply rounded-card bg-primary-200;
+    @apply text-secondary-900;
   }
 
-  .glow-accent {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+  /* Glass effect for overlays */
+  .glass {
+    @apply bg-white/80 dark:bg-secondary-800/80;
+    @apply backdrop-blur-md;
   }
 
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  /* Text styles */
+  .text-muted {
+    @apply text-secondary-400 dark:text-secondary-400;
+  }
+
+  /* Hero stat number */
+  .stat-hero {
+    @apply text-hero font-light tracking-tight;
+  }
+
+  /* Label uppercase style */
+  .label-caps {
+    @apply text-label uppercase tracking-wider;
+    @apply text-secondary-500 dark:text-secondary-400;
+  }
+
+  /* Card title */
+  .card-title {
+    @apply text-title font-medium;
+    @apply text-secondary-900 dark:text-white;
+  }
+
+  /* Navigation link styles */
+  .nav-link {
+    @apply text-sm font-medium transition-colors duration-200;
+    @apply text-secondary-400 hover:text-secondary-900;
+    @apply dark:text-secondary-400 dark:hover:text-white;
+  }
+
+  .nav-link-active {
+    @apply text-secondary-900 dark:text-white;
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Minimal style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-muted rounded-full;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
+  @apply bg-secondary-200 dark:bg-secondary-700 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary/50;
+  @apply bg-secondary-300 dark:bg-secondary-600;
 }
 
-/* Animation for droplet */
-@keyframes droplet-form {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.5;
+/* Smooth transitions for theme changes */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Animation delays for staggered reveals */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+
+/* Chart bar animations */
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
   }
-  50% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.animate-droplet {
-  animation: droplet-form 0.5s ease-out;
-}
-
-/* ===================================
-   KEYGEN MODE STYLES
-   Demoscene-inspired aesthetics
-   =================================== */
-
-/* Keygen color palette */
-:root {
-  --keygen-neon-cyan: #00ffff;
-  --keygen-neon-magenta: #ff00ff;
-  --keygen-neon-green: #39ff14;
-  --keygen-neon-yellow: #ffff00;
-  --keygen-neon-orange: #ff6600;
-  --keygen-dark-bg: #0a0a0f;
-}
-
-/* Main keygen container */
-.keygen-container {
-  background: var(--keygen-dark-bg);
-  image-rendering: pixelated;
-}
-
-/* CRT scanline overlay */
-.keygen-container::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.15) 0px,
-    rgba(0, 0, 0, 0.15) 1px,
-    transparent 1px,
-    transparent 2px
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* CRT flicker effect */
-@keyframes crt-flicker {
-  0% { opacity: 0.97; }
-  50% { opacity: 1; }
-  100% { opacity: 0.98; }
-}
-
-.keygen-container canvas {
-  animation: crt-flicker 0.1s infinite;
-}
-
-/* Keygen slider styling */
-.keygen-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  outline: none;
-}
-
-.keygen-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  background: var(--keygen-neon-cyan);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 0 10px var(--keygen-neon-cyan);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.keygen-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 15px var(--keygen-neon-cyan);
-}
-
-.keygen-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  background: var(--keygen-neon-cyan);
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 0 10px var(--keygen-neon-cyan);
-}
-
-/* Parameters panel styling */
-.keygen-params-panel {
-  backdrop-filter: blur(10px);
-  box-shadow: 
-    0 0 20px rgba(0, 255, 255, 0.2),
-    inset 0 0 30px rgba(0, 0, 0, 0.5);
-}
-
-.keygen-params-panel::-webkit-scrollbar {
-  width: 4px;
-}
-
-.keygen-params-panel::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.keygen-params-panel::-webkit-scrollbar-thumb {
-  background: var(--keygen-neon-cyan);
-  border-radius: 2px;
-}
-
-/* Glitch text animation for transition phase */
-@keyframes glitch-text {
-  0% {
-    transform: translate(0);
-    text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
-  }
-  25% {
-    transform: translate(-2px, 1px);
-    text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff;
-  }
-  50% {
-    transform: translate(2px, -1px);
-    text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
-  }
-  75% {
-    transform: translate(-1px, 2px);
-    text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff;
-  }
-  100% {
-    transform: translate(0);
-    text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff;
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
   }
 }
 
-.keygen-glitch {
-  animation: glitch-text 0.3s infinite;
+.animate-bar-grow {
+  animation: barGrow 0.5s ease-out forwards;
 }
 
-/* Neon glow pulse */
-@keyframes neon-pulse {
-  0%, 100% {
-    text-shadow: 
-      0 0 5px currentColor,
-      0 0 10px currentColor,
-      0 0 20px currentColor;
-  }
-  50% {
-    text-shadow: 
-      0 0 10px currentColor,
-      0 0 20px currentColor,
-      0 0 40px currentColor;
-  }
+/* Toggle switch track */
+.toggle-track {
+  @apply relative inline-flex h-6 w-11 items-center rounded-full;
+  @apply bg-secondary-200 dark:bg-secondary-700;
+  @apply transition-colors duration-200;
 }
 
-.keygen-neon-text {
-  animation: neon-pulse 2s ease-in-out infinite;
+.toggle-track[data-state="checked"] {
+  @apply bg-primary-500;
 }
 
-/* RGB shift for color transition phase */
-@keyframes rgb-shift {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
+.toggle-thumb {
+  @apply block h-5 w-5 rounded-full bg-white shadow-sm;
+  @apply transition-transform duration-200;
+  @apply translate-x-0.5;
 }
 
-.keygen-rgb-shift {
-  animation: rgb-shift 5s linear infinite;
+.toggle-track[data-state="checked"] .toggle-thumb {
+  @apply translate-x-5;
 }
-
-/* Flow animation (existing, used by progress bar) */
-@keyframes flow {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-flow {
-  animation: flow 1.5s linear infinite;
-}
-
-/* Starfield warp effect */
-@keyframes warp-speed {
-  0% { transform: translateZ(0) scale(1); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateZ(200px) scale(2); opacity: 0; }
-}
-
-/* Matrix rain effect (optional) */
-@keyframes matrix-fall {
-  0% { transform: translateY(-100%); opacity: 1; }
-  100% { transform: translateY(1000%); opacity: 0; }
-}
-
-/* Keygen border glow */
-.keygen-border-glow {
-  position: relative;
-}
-
-.keygen-border-glow::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(
-    45deg,
-    var(--keygen-neon-cyan),
-    var(--keygen-neon-magenta),
-    var(--keygen-neon-green),
-    var(--keygen-neon-cyan)
-  );
-  background-size: 400% 400%;
-  animation: gradient-border 3s ease infinite;
-  border-radius: inherit;
-  z-index: -1;
-  filter: blur(8px);
-  opacity: 0.7;
-}
-
-@keyframes gradient-border {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
