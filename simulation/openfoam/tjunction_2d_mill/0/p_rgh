@@ -1,0 +1,67 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p_rgh;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// p_rgh = p - rho*g*h (pressure minus hydrostatic component)
+// For microfluidic scales, hydrostatic pressure is negligible
+// so p_rgh ≈ p
+
+dimensions      [1 -1 -2 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    oil_inlet
+    {
+        // 46 mm x 400 um on-chip oil serpentine: ~3.3 kPa at 20 mm/s
+        // (Ca = 0.032). Hydrostatic equivalent: ~40 cm water column.
+        type            totalPressure;
+        p0              uniform 3900;
+        value           uniform 3900;
+    }
+
+    water_inlet
+    {
+        // 80 um x 27 mm resistor channel == ~31 cm of 0.3 mm-ID tubing
+        // upstream of the chip port. ~1.25 kPa at 5 mm/s, plus junction
+        // (~0.4 kPa) and the ~150 Pa capillary entry threshold.
+        // Hydrostatic equivalent: ~18 cm water column.
+        type            totalPressure;
+        p0              uniform 1800;
+        value           uniform 1800;
+    }
+
+    outlet
+    {
+        // Atmospheric pressure (gauge = 0)
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    walls
+    {
+        // Zero-flux for pressure at walls
+        type            fixedFluxPressure;
+        value           uniform 0;
+    }
+
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

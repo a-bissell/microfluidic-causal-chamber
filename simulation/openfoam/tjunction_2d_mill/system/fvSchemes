@@ -1,0 +1,78 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Discretization schemes for interFoam solver
+// Optimized for two-phase microfluidic flow
+
+ddtSchemes
+{
+    // First-order Euler for time integration
+    // More stable for VOF interface tracking
+    default         Euler;
+}
+
+gradSchemes
+{
+    // Second-order accurate gradient calculation
+    default         Gauss linear;
+}
+
+divSchemes
+{
+    // Convection schemes
+    
+    // Momentum: Limited linear for stability
+    div(rhoPhi,U)   Gauss linearUpwind grad(U);
+    
+    // VOF interface: MULES with interface compression
+    // interfaceCompression: 1 = full compression (sharp interface)
+    div(phi,alpha)  Gauss interfaceCompression vanLeer 1;
+
+    // ESI (v2306) interFoam looks up the compression flux term separately
+    // (Foundation 11 ignores this entry)
+    div(phirb,alpha) Gauss linear;
+
+    // Turbulence (not used for laminar, but kept for compatibility)
+    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) Gauss upwind;
+    div(phi,omega)  Gauss upwind;
+
+    // Viscous stress term: Foundation 11 spelling...
+    div((muEff*dev(T(grad(U))))) Gauss linear;
+    // ...and ESI v2306 spelling
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+
+laplacianSchemes
+{
+    // Diffusion terms: corrected for non-orthogonal meshes
+    default         Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    // Surface normal gradients: corrected for non-orthogonality
+    default         corrected;
+}
+
+// ************************************************************************* //
+
+

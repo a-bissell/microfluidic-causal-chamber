@@ -36,6 +36,10 @@ openfoam/
 │   │                        # actuation) runs; see its README
 │   └── gen_blockmesh.py     # parameterized mesh generator
 │
+├── tjunction_2d_mill/      # digital twin of the millable 400 µm chip
+│   │                        # (Makers-Guide PMMA workflow); see its README
+│   └── gen_blockmesh.py
+│
 ├── tjunction_3d/           # 3D simulation case
 │   └── (same structure with parallel support)
 │
