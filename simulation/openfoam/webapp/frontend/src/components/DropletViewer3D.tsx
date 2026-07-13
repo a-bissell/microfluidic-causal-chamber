@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Grid, Text } from '@react-three/drei'
 import { Play, Pause, SkipBack, SkipForward, Maximize2 } from 'lucide-react'
 import * as THREE from 'three'
@@ -93,7 +93,7 @@ function AnimatedDroplets({ timeStep, playing }: { timeStep: number; playing: bo
     setDroplets(newDroplets)
   }, [timeStep])
 
-  useFrame((state) => {
+  useFrame(() => {
     if (dropletsRef.current && playing) {
       // Animate droplets moving along channel
       dropletsRef.current.children.forEach((child, i) => {
@@ -162,7 +162,7 @@ export default function DropletViewer3D({ caseId }: DropletViewer3DProps) {
   const [timeStep, setTimeStep] = useState(0)
   const [maxTime, setMaxTime] = useState(0.05)
   const [playing, setPlaying] = useState(false)
-  const [outputTimes, setOutputTimes] = useState<number[]>([])
+  const [, setOutputTimes] = useState<number[]>([])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 

@@ -22,16 +22,17 @@ boundaryField
 {
     oil_inlet
     {
-        type            totalPressure;
-        p0              uniform 50000;
-        value           uniform 50000;
+        // Floats to match the fixed-velocity inlet in 0/U; for
+        // pressure-driven runs use totalPressure with p0 ~ 850 Pa.
+        type            fixedFluxPressure;
+        value           uniform 0;
     }
 
     water_inlet
     {
-        type            totalPressure;
-        p0              uniform 30000;
-        value           uniform 30000;
+        // For pressure-driven runs: totalPressure, p0 ~ 650 Pa.
+        type            fixedFluxPressure;
+        value           uniform 0;
     }
 
     outlet

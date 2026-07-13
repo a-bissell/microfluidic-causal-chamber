@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { Play, Beaker, Gauge, Clock, Droplets, Music } from 'lucide-react'
+import { Play, Beaker, Gauge, Clock, Droplets } from 'lucide-react'
 import { SimulationParameters } from '../lib/api'
 import { formatPressure } from '../lib/utils'
 
 interface ParameterPanelProps {
   onStart: (params: SimulationParameters) => void
-  onStartDemo?: () => void
   disabled?: boolean
-  demoRunning?: boolean
 }
 
 interface Preset {
@@ -16,28 +14,32 @@ interface Preset {
   params: Partial<SimulationParameters>
 }
 
+// Pressures are of order 100-2000 Pa, not tens of kPa: over the short
+// simulated domain, kPa-scale inlets give Ca >> 0.02 (stratified flow, no
+// droplets) and P_disp must clear the junction pressure plus the ~800 Pa
+// capillary entry threshold. See simulation/openfoam/results/sweep_2026-07.
 const presets: Preset[] = [
   {
-    name: 'Dripping Regime',
-    description: 'Low flow rate, large droplets',
-    params: { p_cont: 30000, p_disp: 20000, end_time: 0.05 },
+    name: 'Verified Droplets',
+    description: 'Sim-verified squeezing/dripping (16.7 Hz)',
+    params: { p_cont: 850, p_disp: 1500, end_time: 0.06 },
   },
   {
-    name: 'Squeezing Regime',
-    description: 'Moderate flow, regular droplets',
-    params: { p_cont: 50000, p_disp: 30000, end_time: 0.05 },
+    name: 'Gentle Flow',
+    description: 'Lower rate, larger slugs (unverified)',
+    params: { p_cont: 600, p_disp: 1100, end_time: 0.08 },
   },
   {
-    name: 'Jetting Regime',
-    description: 'High flow rate, small droplets',
-    params: { p_cont: 100000, p_disp: 40000, end_time: 0.03 },
+    name: 'High Rate',
+    description: 'Faster formation, smaller droplets (unverified)',
+    params: { p_cont: 1100, p_disp: 1900, end_time: 0.05 },
   },
 ]
 
-export default function ParameterPanel({ onStart, onStartDemo, disabled, demoRunning }: ParameterPanelProps) {
+export default function ParameterPanel({ onStart, disabled }: ParameterPanelProps) {
   const [params, setParams] = useState<SimulationParameters>({
-    p_cont: 50000,
-    p_disp: 30000,
+    p_cont: 850,
+    p_disp: 1500,
     end_time: 0.05,
     write_interval: 0.001,
     nu_oil: 5e-5,
@@ -254,11 +256,11 @@ export default function ParameterPanel({ onStart, onStartDemo, disabled, demoRun
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={disabled || demoRunning}
+          disabled={disabled}
           className={`
             w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2
             transition-all duration-200
-            ${disabled || demoRunning
+            ${disabled
               ? 'bg-muted text-muted-foreground cursor-not-allowed'
               : 'bg-gradient-to-r from-primary to-primary/80 text-white hover:shadow-lg hover:shadow-primary/25 glow-primary'
             }
@@ -267,27 +269,6 @@ export default function ParameterPanel({ onStart, onStartDemo, disabled, demoRun
           <Play className="w-5 h-5" />
           {disabled ? 'Simulation Running...' : 'Start Simulation'}
         </button>
-
-        {/* Demo Mode Button */}
-        {onStartDemo && (
-          <button
-            type="button"
-            onClick={onStartDemo}
-            disabled={disabled || demoRunning}
-            className={`
-              w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2
-              transition-all duration-200 mt-2
-              ${disabled || demoRunning
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg hover:shadow-purple-500/25 border border-purple-400/30'
-              }
-            `}
-            title="Start a simulated simulation to test the keygen visualizer"
-          >
-            <Music className="w-5 h-5" />
-            {demoRunning ? 'Demo Running...' : '▶ Demo Mode (Keygen Test)'}
-          </button>
-        )}
       </form>
     </div>
   )

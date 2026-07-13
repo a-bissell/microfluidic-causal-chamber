@@ -371,19 +371,25 @@ def main():
         required=True,
         help="Directory for parametric sweep results"
     )
+    # NOTE: pressures here are of order 100-1000 Pa, NOT tens of kPa. Over
+    # this short domain (no tubing/serpentine resistance), kPa-scale inlets
+    # give Ca >> 0.02 and a junction pressure above P_disp — stratified flow
+    # and zero droplets (this was the Dec 2025 failure). Droplets need
+    # Ca = mu_cont*U/sigma <= ~0.05 and P_disp above the junction pressure
+    # (roughly 0.65 * P_cont for this geometry).
     parser.add_argument(
         "--p-cont",
         type=float,
         nargs='+',
-        default=[20000, 40000, 60000, 80000, 100000],
-        help="Continuous phase pressure values (Pa)"
+        default=[600, 850, 1100],
+        help="Continuous phase pressure values (Pa); see regime note in source"
     )
     parser.add_argument(
         "--p-disp",
         type=float,
         nargs='+',
-        default=[10000, 20000, 30000, 40000, 50000],
-        help="Dispersed phase pressure values (Pa)"
+        default=[500, 650, 800],
+        help="Dispersed phase pressure values (Pa); must exceed ~0.65*P_cont"
     )
     parser.add_argument(
         "--dry-run",

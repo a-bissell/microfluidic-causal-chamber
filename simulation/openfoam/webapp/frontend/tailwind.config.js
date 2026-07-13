@@ -123,7 +123,6 @@ export default {
         },
       },
       maxWidth: {
-        "dashboard": "1400px",
       },
     },
   },

@@ -22,17 +22,21 @@ boundaryField
 {
     oil_inlet
     {
-        // Velocity is calculated from pressure gradient
-        // For pressure-driven flow with totalPressure BC
-        type            pressureInletOutletVelocity;
-        value           uniform (0 0 0);
+        // Fixed-velocity inlet. U = 20 mm/s gives Ca = mu_oil*U/sigma = 0.032,
+        // in the squeezing/dripping transition where droplets form.
+        // The original pressure-driven BCs (totalPressure 50/30 kPa) produced
+        // Ca ~ 1.9 and a junction pressure above the water inlet pressure, so
+        // no droplets could form (stratified flow, zero sustained water flux).
+        type            fixedValue;
+        value           uniform (0.02 0 0);
     }
 
     water_inlet
     {
-        // Velocity is calculated from pressure gradient
-        type            pressureInletOutletVelocity;
-        value           uniform (0 0 0);
+        // Q_disp/Q_cont = (0.01*75um)/(0.02*150um) = 0.25
+        // Expected slug length (Garstecki): L/w = 1 + alpha*0.25
+        type            fixedValue;
+        value           uniform (0 -0.01 0);
     }
 
     outlet

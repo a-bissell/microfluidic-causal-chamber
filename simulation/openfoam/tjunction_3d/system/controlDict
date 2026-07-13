@@ -23,7 +23,8 @@ startTime       0;
 stopAt          endTime;
 
 // 3D simulations are slower - reduce end time for testing
-endTime         0.05;
+// ~3 droplet periods at Ca ~ 0.03
+endTime         0.12;
 
 deltaT          1e-7;
 
@@ -48,7 +49,9 @@ runTimeModifiable yes;
 adjustTimeStep  yes;
 maxCo           0.5;
 maxAlphaCo      0.5;
-maxDeltaT       1e-5;
+// Keep dt under the capillary limit sqrt(rho*dx^3/(2*pi*sigma)) so
+// parasitic currents don't destroy the interface at low velocities.
+maxDeltaT       7e-7;
 
 functions
 {
