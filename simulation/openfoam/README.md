@@ -31,6 +31,11 @@ openfoam/
 │   ├── Allrun              # Run script
 │   └── Allclean            # Clean script
 │
+├── tjunction_2d_serpentine/ # 2D case with inlet resistor channels —
+│   │                        # use this for pressure-driven (causal-chamber
+│   │                        # actuation) runs; see its README
+│   └── gen_blockmesh.py     # parameterized mesh generator
+│
 ├── tjunction_3d/           # 3D simulation case
 │   └── (same structure with parallel support)
 │

@@ -1,0 +1,60 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    oil_inlet
+    {
+        // Pressure-driven case (the causal-chamber actuation mode): the
+        // inlet resistor channels carry most of the pressure drop, so the
+        // velocities follow from 0/p_rgh. Reference point: P_cont = 13 kPa,
+        // P_disp = 3 kPa gives U_oil ~ 20 mm/s, U_water ~ 10 mm/s in the
+        // junction region (Ca = 0.032, Q_disp/Q_cont = 0.25).
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    water_inlet
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    outlet
+    {
+        // Allow flow to exit naturally
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    walls
+    {
+        // No-slip condition at solid walls
+        type            noSlip;
+    }
+
+    frontAndBack
+    {
+        // 2D simulation - empty boundary
+        type            empty;
+    }
+}
+
+// ************************************************************************* //
