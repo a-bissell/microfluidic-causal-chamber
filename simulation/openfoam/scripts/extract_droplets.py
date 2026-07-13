@@ -87,7 +87,33 @@ class DropletExtractor:
         
         vtk_files.sort(key=get_time)
         return vtk_files
-    
+
+    def resolve_times(self, vtk_files):
+        """
+        Map VTK files to physical times.
+
+        foamToVTK names legacy files <case>_<N>.vtk where N is the write
+        index or iteration count, NOT the physical time in seconds (the
+        original version of this script treated it as seconds, which made
+        the frequency output meaningless). The solver's time directories
+        hold the real times, so use those when they line up one-to-one
+        with the VTK files; otherwise fall back to the filename number.
+        """
+        time_dirs = []
+        for d in self.case_dir.iterdir():
+            if d.is_dir():
+                try:
+                    time_dirs.append(float(d.name))
+                except ValueError:
+                    continue
+        time_dirs.sort()
+        if len(time_dirs) == len(vtk_files):
+            return time_dirs
+        print(f"Warning: {len(time_dirs)} time dirs vs {len(vtk_files)} VTK "
+              "files; falling back to filename numbers as times")
+        return [float(f.stem.split('_')[-1]) for f in vtk_files]
+
+
     def read_vtk(self, vtk_file):
         """Read VTK file and extract alpha field."""
         reader = vtk.vtkUnstructuredGridReader()
@@ -202,42 +228,26 @@ class DropletExtractor:
     def calculate_frequency(self, all_droplets, times):
         """
         Calculate droplet formation frequency from time series.
-        
-        Counts droplets passing a reference line over time.
+
+        Counts increases in the number of droplets downstream of a
+        reference line between consecutive frames. (The previous version
+        looked for centroids within +-20 um of the line, but a droplet
+        moving at ~25 mm/s covers ~50 um per output frame and usually
+        jumps straight over the window.)
         """
         if len(times) < 2:
             return 0.0
-        
+
         # Reference position for counting (mid-outlet)
         x_ref = 0.001  # 1 mm from inlet
-        
-        # Track droplet passage times
-        passage_times = []
-        
-        for t, droplets in zip(times, all_droplets):
-            for drop in droplets:
-                # Check if droplet centroid is near reference line
-                if abs(drop['centroid_x'] - x_ref) < 20e-6:  # Within 20 um
-                    passage_times.append(t)
-        
-        # Remove duplicates (same droplet detected in consecutive frames)
-        if len(passage_times) < 2:
-            return 0.0
-        
-        passage_times = np.array(passage_times)
-        unique_passages = [passage_times[0]]
-        for t in passage_times[1:]:
-            if t - unique_passages[-1] > 0.001:  # At least 1 ms between detections
-                unique_passages.append(t)
-        
-        if len(unique_passages) < 2:
-            return 0.0
-        
-        # Calculate frequency
+
+        counts = [sum(1 for d in drops if d['centroid_x'] > x_ref)
+                  for drops in all_droplets]
+        crossings = sum(max(c1 - c0, 0)
+                        for c0, c1 in zip(counts, counts[1:]))
+
         total_time = times[-1] - times[0]
-        frequency = len(unique_passages) / total_time if total_time > 0 else 0.0
-        
-        return frequency
+        return crossings / total_time if total_time > 0 else 0.0
     
     def process_case(self):
         """
@@ -245,19 +255,13 @@ class DropletExtractor:
         """
         vtk_files = self.find_vtk_files()
         print(f"Found {len(vtk_files)} VTK files")
-        
+        file_times = self.resolve_times(vtk_files)
+
         results = []
         all_droplets = []
         times = []
-        
-        for vtk_file in vtk_files:
-            # Extract time from filename
-            parts = vtk_file.stem.split("_")
-            try:
-                time = float(parts[-1])
-            except ValueError:
-                time = 0.0
-            
+
+        for vtk_file, time in zip(vtk_files, file_times):
             print(f"Processing t = {time:.4f} s...")
             
             try:

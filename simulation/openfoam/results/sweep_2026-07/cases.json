@@ -1,0 +1,101 @@
+[
+ {
+  "name": "uo10_uw5",
+  "mode": "velocity",
+  "U_oil": 0.01,
+  "U_water": 0.005,
+  "Ca": 0.016,
+  "q_ratio": 0.25,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo10_uw10",
+  "mode": "velocity",
+  "U_oil": 0.01,
+  "U_water": 0.01,
+  "Ca": 0.016,
+  "q_ratio": 0.5,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo10_uw15",
+  "mode": "velocity",
+  "U_oil": 0.01,
+  "U_water": 0.015,
+  "Ca": 0.016,
+  "q_ratio": 0.75,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo20_uw5",
+  "mode": "velocity",
+  "U_oil": 0.02,
+  "U_water": 0.005,
+  "Ca": 0.032,
+  "q_ratio": 0.125,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo20_uw10",
+  "mode": "velocity",
+  "U_oil": 0.02,
+  "U_water": 0.01,
+  "Ca": 0.032,
+  "q_ratio": 0.25,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo20_uw15",
+  "mode": "velocity",
+  "U_oil": 0.02,
+  "U_water": 0.015,
+  "Ca": 0.032,
+  "q_ratio": 0.375,
+  "endTime": 0.092
+ },
+ {
+  "name": "uo30_uw5",
+  "mode": "velocity",
+  "U_oil": 0.03,
+  "U_water": 0.005,
+  "Ca": 0.048,
+  "q_ratio": 0.08333333333333334,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo30_uw10",
+  "mode": "velocity",
+  "U_oil": 0.03,
+  "U_water": 0.01,
+  "Ca": 0.048,
+  "q_ratio": 0.16666666666666669,
+  "endTime": 0.1
+ },
+ {
+  "name": "uo30_uw15",
+  "mode": "velocity",
+  "U_oil": 0.03,
+  "U_water": 0.015,
+  "Ca": 0.048,
+  "q_ratio": 0.25,
+  "endTime": 0.085
+ },
+ {
+  "name": "pilot_p850_650",
+  "mode": "pressure",
+  "P_cont": 850.0,
+  "P_disp": 650.0,
+  "Ca": null,
+  "q_ratio": null,
+  "endTime": 0.06
+ },
+ {
+  "name": "pilot_p850_1500",
+  "mode": "pressure",
+  "P_cont": 850.0,
+  "P_disp": 1500.0,
+  "Ca": null,
+  "q_ratio": null,
+  "endTime": 0.06
+ }
+]

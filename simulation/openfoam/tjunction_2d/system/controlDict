@@ -24,13 +24,14 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         0.05;
+// At Ca ~ 0.03 the droplet period is ~0.04 s, so 0.12 s captures ~3 droplets.
+endTime         0.12;
 
 deltaT          1e-7;
 
 writeControl    adjustableRunTime;
 
-writeInterval   0.001;
+writeInterval   0.002;
 
 purgeWrite      0;
 
@@ -52,7 +53,11 @@ maxCo           0.5;
 
 maxAlphaCo      0.5;
 
-maxDeltaT       1e-5;
+// Capillary timestep limit sqrt(rho*dx^3/(2*pi*sigma)) ~ 8e-7 s at dx = 5 um.
+// interFoam does not enforce it; at the new low velocities the Courant limit
+// alone would allow dt ~ 1e-4 and parasitic currents would destroy the
+// interface, so cap dt just below the capillary limit.
+maxDeltaT       7e-7;
 
 // No function objects for now - simpler run
 functions

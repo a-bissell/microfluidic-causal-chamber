@@ -10,49 +10,15 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fvSchemes;
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-ddtSchemes
-{
-    default         Euler;
-}
+// Capillary-limited timesteps make serial runs slow (~250k steps for 0.12 s);
+// 6-way decomposition keeps ~2k cells per rank on the 12.7k-cell 2D mesh.
 
-gradSchemes
-{
-    default         Gauss linear;
-}
+numberOfSubdomains  6;
 
-divSchemes
-{
-    div(rhoPhi,U)   Gauss linearUpwind grad(U);
-    div(phi,alpha)  Gauss interfaceCompression vanLeer 1;
-
-    // ESI (v2306) interFoam reads these two; Foundation 11 ignores them
-    div(phirb,alpha) Gauss linear;
-    div(phi,k)      Gauss upwind;
-    div(phi,epsilon) Gauss upwind;
-    div(phi,omega)  Gauss upwind;
-    div((muEff*dev(T(grad(U))))) Gauss linear;
-    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
-}
-
-laplacianSchemes
-{
-    default         Gauss linear corrected;
-}
-
-interpolationSchemes
-{
-    default         linear;
-}
-
-snGradSchemes
-{
-    default         corrected;
-}
+method              scotch;
 
 // ************************************************************************* //
-
-

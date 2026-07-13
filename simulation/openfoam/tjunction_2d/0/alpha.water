@@ -41,9 +41,13 @@ boundaryField
 
     walls
     {
-        // OpenFOAM 11 uses 'contactAngle' instead of 'constantAlphaContactAngle'
-        type            contactAngle;
-        theta0          120;
+        // Strongly oil-wet walls: theta0 measured through the water phase,
+        // 160 deg keeps the water thread off the walls so it can neck and
+        // pinch off (120 deg let water spread as a stable wall film).
+        // ESI (v2306+) name: constantAlphaContactAngle
+        // Foundation (11+) name: contactAngle
+        type            constantAlphaContactAngle;
+        theta0          160;
         limit           gradient;
         value           uniform 0;
     }

@@ -44,9 +44,17 @@ echo "Step 4: Setting initial conditions..."
 cp 0/alpha.water 0/alpha.water.bak 2>/dev/null
 setFields > log.setFields 2>&1
 
-echo "Step 5: Running interFoam..."
+# ESI versions (v2306+) provide interFoam; OpenFOAM.org 11+ replaced the
+# per-physics solvers with foamRun (solver chosen in controlDict).
+if command -v interFoam >/dev/null 2>&1; then
+    SOLVER=interFoam
+else
+    SOLVER=foamRun
+fi
+
+echo "Step 5: Running $SOLVER..."
 echo "  This may take 10-30 minutes..."
-interFoam > log.interFoam 2>&1 &
+$SOLVER > log.interFoam 2>&1 &
 PID=$!
 
 # Show progress
@@ -66,7 +74,9 @@ STATUS=$?
 
 if [ $STATUS -eq 0 ]; then
     echo "Step 6: Converting to VTK..."
-    foamToVTK > log.foamToVTK 2>&1
+    # scripts/extract_droplets.py reads legacy .vtk: ESI foamToVTK defaults
+    # to XML and needs -legacy; OpenFOAM.org writes legacy by default.
+    foamToVTK -legacy > log.foamToVTK 2>&1 || foamToVTK > log.foamToVTK 2>&1
     
     echo ""
     echo "=========================================="

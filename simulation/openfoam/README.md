@@ -141,14 +141,25 @@ From `constant/transportProperties`:
 
 ## Boundary Conditions
 
-From `0/p_rgh`:
+From `0/U` and `0/p_rgh` (velocity-driven, the default since the 2026-07 fix):
 
-| Boundary | Pressure | Type |
-|----------|----------|------|
-| oil_inlet | 50 kPa | totalPressure |
-| water_inlet | 30 kPa | totalPressure |
-| outlet | 0 (gauge) | fixedValue |
-| walls | - | fixedFluxPressure |
+| Boundary | Condition | Value |
+|----------|-----------|-------|
+| oil_inlet | fixedValue U | 20 mm/s (Ca = 0.032) |
+| water_inlet | fixedValue U | 10 mm/s (Q_disp/Q_cont = 0.25) |
+| outlet | fixedValue p | 0 (gauge) |
+| walls | noSlip, contact angle | theta0 = 160° (oil-wet) |
+
+> **Why not the original 50/30 kPa pressure inlets?** Over this short
+> domain (1.65 mm), 50 kPa drives ~1.2 m/s of oil — a capillary number of
+> ~1.9, two orders of magnitude above the droplet-forming regime
+> (Ca ≲ 0.02), and the resulting junction pressure (~33 kPa) exceeds the
+> 30 kPa water inlet, so water cannot flow in at all. The result is a
+> steady stratified film and zero droplets. For pressure-driven runs
+> (matching the causal-chamber actuation model), use totalPressure with
+> p0 ≈ 850 Pa (oil) and ≈ 650 Pa (water) instead — real chips only see
+> tens of kPa because most of it drops across tubing and long serpentine
+> channels that this geometry doesn't include.
 
 ## Post-Processing
 
@@ -188,22 +199,26 @@ This generates 25 cases (5×5 grid) with different pressure combinations.
 
 ## Modifying Parameters
 
-### Change Inlet Pressures
+### Change Inlet Flow Rates
 
-Edit `0/p_rgh`:
+Edit `0/U`:
 ```
 oil_inlet
 {
-    type            totalPressure;
-    p0              uniform 50000;  // Change this value (Pa)
+    type            fixedValue;
+    value           uniform (0.02 0 0);   // Keep Ca = mu*U/sigma below ~0.05
 }
 
 water_inlet
 {
-    type            totalPressure;
-    p0              uniform 30000;  // Change this value (Pa)
+    type            fixedValue;
+    value           uniform (0 -0.01 0);  // Sets Q_disp/Q_cont ratio
 }
 ```
+
+For pressure-driven operation, switch both inlets in `0/p_rgh` to
+`totalPressure` (see the comments in that file) with p0 of order
+100–1000 Pa — **not** tens of kPa; see Boundary Conditions above.
 
 ### Change Fluid Properties
 
@@ -245,9 +260,18 @@ writeInterval   0.001;  // Output frequency (s)
 
 ### No Droplets Form
 
-1. **Increase pressure difference**: Try P_oil=60kPa, P_water=40kPa
-2. **Run longer**: Increase `endTime` in controlDict
-3. **Check contact angle**: Try theta0=90 or theta0=150 in alpha.water
+1. **Check the capillary number first**: Ca = mu_cont * U_cont / sigma must
+   be ≲ 0.02 (squeezing/dripping regime). Higher Ca means stratified or
+   jetting flow — *lowering* velocity/pressure helps, raising it doesn't.
+2. **Check the water inlet can actually flow**: with pressure inlets, the
+   water p0 must exceed the pressure at the junction (roughly the oil p0
+   scaled by the fraction of channel length downstream of the junction),
+   or the water phase stalls entirely.
+3. **Check contact angle**: walls must be strongly oil-wet — theta0 ≥ 150
+   in alpha.water. At theta0 ≤ 120 water spreads as a stable wall film
+   instead of necking.
+4. **Run longer**: at Ca ~ 0.03 the droplet period is ~0.04 s; `endTime`
+   must cover several periods.
 
 ### Simulation Too Slow
 
@@ -290,6 +314,15 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 ### Causal Chambers
 - Gamella et al. (2025), "Causal chambers as a real-world physical testbed for AI methodology", Nature Machine Intelligence
 - Microfluidic chamber plan: `hardware/microfluidic/microfluidic_chamber_plan.md`
+
+## Results
+
+- `droplet_verification.png` — filmstrip of the first verified droplet
+  formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/sweep_2026-07/`](results/sweep_2026-07/) — first parametric
+  sweep: 9 velocity-driven cases (all forming droplets, 10–43 Hz) recovering
+  the Garstecki scaling law with α = 1.24, R² = 0.94, plus pressure-driven
+  pilots mapping the capillary entry-pressure threshold.
 
 ## Web Interface
 

@@ -30,6 +30,7 @@ solvers
         // Compression settings
         MULESCorr       yes;
         nLimiterIter    5;
+        cAlpha          1;      // interface compression (required by ESI interFoam)
         
         solver          smoothSolver;
         smoother        symGaussSeidel;

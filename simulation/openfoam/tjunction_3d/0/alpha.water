@@ -42,7 +42,9 @@ boundaryField
     walls
     {
         type            constantAlphaContactAngle;
-        theta0          120;
+        // Strongly oil-wet walls so the water thread necks and pinches
+        // off instead of spreading as a wall film.
+        theta0          160;
         limit           gradient;
         value           uniform 0;
     }

@@ -26,21 +26,20 @@ boundaryField
 {
     oil_inlet
     {
-        // Continuous phase inlet pressure: 50 kPa gauge
-        // totalPressure = p + 0.5*rho*U^2
-        // For low velocities, this ≈ static pressure
-        type            totalPressure;
-        p0              uniform 50000;      // 50 kPa
-        value           uniform 50000;
+        // Pressure floats to match the fixed-velocity inlet in 0/U.
+        // For a pressure-driven run (the causal-chamber actuation mode), use
+        // totalPressure with p0 ~ 850 Pa here and ~650 Pa at water_inlet:
+        // at these channel lengths 50 kPa drives ~1.2 m/s (Ca ~ 1.9, no
+        // droplets), and 30 kPa at the water inlet is below the ~33 kPa
+        // junction pressure, so water cannot flow in at all.
+        type            fixedFluxPressure;
+        value           uniform 0;
     }
 
     water_inlet
     {
-        // Dispersed phase inlet pressure: 30 kPa gauge
-        // Lower pressure than oil to create proper flow ratio
-        type            totalPressure;
-        p0              uniform 30000;      // 30 kPa
-        value           uniform 30000;
+        type            fixedFluxPressure;
+        value           uniform 0;
     }
 
     outlet
