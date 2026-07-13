@@ -324,6 +324,9 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/psweep_2026-07/`](results/psweep_2026-07/) — pressure-actuated 3×3
+  sweep on the serpentine case: droplets in all 9 cells, monotonic
+  L/w and speed response maps (the P → Q → droplet causal mechanism).
 - [`results/sweep_2026-07/`](results/sweep_2026-07/) — first parametric
   sweep: 9 velocity-driven cases (all forming droplets, 10–43 Hz) recovering
   the Garstecki scaling law with α = 1.24, R² = 0.94, plus pressure-driven

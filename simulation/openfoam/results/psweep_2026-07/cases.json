@@ -1,0 +1,65 @@
+[
+ {
+  "name": "pc10k_pd2400",
+  "mode": "pressure",
+  "P_cont": 10000.0,
+  "P_disp": 2400.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc10k_pd3000",
+  "mode": "pressure",
+  "P_cont": 10000.0,
+  "P_disp": 3000.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc10k_pd3600",
+  "mode": "pressure",
+  "P_cont": 10000.0,
+  "P_disp": 3600.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc13k_pd2400",
+  "mode": "pressure",
+  "P_cont": 13000.0,
+  "P_disp": 2400.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc13k_pd3000",
+  "mode": "pressure",
+  "P_cont": 13000.0,
+  "P_disp": 3000.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc13k_pd3600",
+  "mode": "pressure",
+  "P_cont": 13000.0,
+  "P_disp": 3600.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc16k_pd2400",
+  "mode": "pressure",
+  "P_cont": 16000.0,
+  "P_disp": 2400.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc16k_pd3000",
+  "mode": "pressure",
+  "P_cont": 16000.0,
+  "P_disp": 3000.0,
+  "endTime": 0.08
+ },
+ {
+  "name": "pc16k_pd3600",
+  "mode": "pressure",
+  "P_cont": 16000.0,
+  "P_disp": 3600.0,
+  "endTime": 0.08
+ }
+]
