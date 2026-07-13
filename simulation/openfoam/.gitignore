@@ -1,0 +1,10 @@
+# OpenFOAM run artifacts — regenerate with Allrun; never commit results.
+# (Curated result summaries belong under results/<name>/ instead.)
+**/VTK/
+**/log.*
+**/processor*/
+**/postProcessing/
+**/constant/polyMesh/
+# solver output time directories (all end times here are < 1 s)
+**/0.[0-9]*/
+*.foam
