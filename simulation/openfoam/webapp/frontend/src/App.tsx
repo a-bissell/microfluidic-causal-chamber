@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Droplet, Settings, BarChart3, Activity, Grid3X3 } from 'lucide-react'
 import { ThemeProvider } from './context/ThemeContext'
 import { ThemeSwitch } from './components/ui'
@@ -11,49 +11,12 @@ import { api, SimulationParameters, SimulationStatus, simulationWs } from './lib
 
 type Tab = 'control' | 'visualization' | 'results' | 'sweep'
 
-// Fake log messages for demo mode
-const DEMO_LOG_MESSAGES = [
-  'Starting OpenFOAM simulation...',
-  'blockMesh: Creating block mesh topology',
-  'blockMesh: Creating cells',
-  'blockMesh: Creating patches',
-  'setFields: Setting initial alpha.water field',
-  'interFoam: Reading field p_rgh',
-  'interFoam: Reading field U',
-  'interFoam: Reading transportProperties',
-  'PIMPLE: Operating in PISO mode',
-  'Time = 0.0001s',
-  'Courant Number mean: 0.0234 max: 0.142',
-  'DILUPBiCGStab: Solving for alpha.water, Initial residual = 0.00234',
-  'Phase-1 volume fraction = 0.0156 Min(alpha.water) = 0 Max(alpha.water) = 1',
-  'GAMG: Solving for p_rgh, Initial residual = 0.0891',
-  'time step continuity errors: sum local = 1.234e-09',
-  'ExecutionTime = 2.34 s  ClockTime = 3 s',
-  'Time = 0.0002s',
-  'Courant Number mean: 0.0256 max: 0.156',
-  'Interface capturing with MULES',
-  'Droplet formation detected at T-junction',
-  'Time = 0.0003s',
-  'Calculating surface tension forces...',
-  'VOF phase fraction updated',
-  'Pressure-velocity coupling: PIMPLE iteration 1',
-  'Time = 0.0004s',
-  'Courant Number mean: 0.0312 max: 0.178',
-  'Droplet pinch-off imminent...',
-  'Time = 0.0005s',
-  'DROPLET FORMED - Volume: 2.34e-12 m³',
-  'Continuing simulation...',
-]
-
 function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('control')
   const [isConnected, setIsConnected] = useState(false)
   const [currentCase, setCurrentCase] = useState<string | null>(null)
   const [simulationStatus, setSimulationStatus] = useState<SimulationStatus | null>(null)
   const [logs, setLogs] = useState<string[]>([])
-  const [demoMode, setDemoMode] = useState(false)
-  const demoIntervalRef = useRef<number | null>(null)
-  const demoLogIndexRef = useRef(0)
 
   // Check backend connection
   useEffect(() => {
@@ -98,9 +61,9 @@ function AppContent() {
     return () => disconnect()
   }, [currentCase])
 
-  // Fetch logs periodically (skip in demo mode - demo has its own log generation)
+  // Fetch logs periodically
   useEffect(() => {
-    if (!currentCase || demoMode) return
+    if (!currentCase) return
 
     const fetchLogs = async () => {
       try {
@@ -114,7 +77,7 @@ function AppContent() {
     fetchLogs()
     const interval = setInterval(fetchLogs, 2000)
     return () => clearInterval(interval)
-  }, [currentCase, demoMode])
+  }, [currentCase])
 
   const handleStartSimulation = useCallback(async (params: SimulationParameters) => {
     try {
@@ -128,17 +91,6 @@ function AppContent() {
   }, [])
 
   const handleStopSimulation = useCallback(async () => {
-    // Handle demo mode stop
-    if (demoMode) {
-      if (demoIntervalRef.current) {
-        clearInterval(demoIntervalRef.current)
-        demoIntervalRef.current = null
-      }
-      setDemoMode(false)
-      setSimulationStatus((prev) => prev ? { ...prev, status: 'stopped' } : null)
-      return
-    }
-
     if (!currentCase) return
     try {
       await api.stopSimulation(currentCase)
@@ -146,87 +98,7 @@ function AppContent() {
     } catch (error) {
       console.error('Failed to stop simulation:', error)
     }
-  }, [currentCase, demoMode])
-
-  // Demo mode - simulated simulation for testing keygen visualizer
-  const handleStartDemo = useCallback(() => {
-    setDemoMode(true)
-    setCurrentCase('demo-simulation')
-    setLogs(['═══════════════════════════════════════════════', 
-             '  DEMO MODE - Simulated Simulation',
-             '  Testing Keygen Visualizer',
-             '═══════════════════════════════════════════════',
-             ''])
-    demoLogIndexRef.current = 0
-    
-    const demoEndTime = 0.05
-    const demoDuration = 120 // 2 minutes of demo time
-    const startTime = Date.now()
-
-    setSimulationStatus({
-      case_id: 'demo-simulation',
-      status: 'running',
-      progress: 0,
-      current_time: 0,
-      end_time: demoEndTime,
-      courant_number: 0.15,
-      message: 'Demo mode active',
-    })
-
-    // Update progress and add logs periodically
-    demoIntervalRef.current = window.setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000
-      const progress = Math.min(elapsed / demoDuration, 1)
-      const currentTime = progress * demoEndTime
-
-      // Add a new log message every ~2 seconds
-      if (Math.random() > 0.7) {
-        const logMessage = DEMO_LOG_MESSAGES[demoLogIndexRef.current % DEMO_LOG_MESSAGES.length]
-        setLogs((prev) => [...prev.slice(-50), `Time = ${currentTime.toFixed(4)}s`])
-        demoLogIndexRef.current++
-        
-        // Add the actual message after a tiny delay for effect
-        setTimeout(() => {
-          setLogs((prev) => [...prev.slice(-50), logMessage])
-        }, 100)
-      }
-
-      // Vary courant number slightly
-      const courant = 0.15 + Math.sin(elapsed * 0.5) * 0.1 + Math.random() * 0.05
-
-      setSimulationStatus({
-        case_id: 'demo-simulation',
-        status: 'running',
-        progress,
-        current_time: currentTime,
-        end_time: demoEndTime,
-        courant_number: courant,
-        message: progress > 0.5 ? 'Droplet formation in progress...' : 'Initializing flow field...',
-      })
-
-      // End demo after duration
-      if (progress >= 1) {
-        if (demoIntervalRef.current) {
-          clearInterval(demoIntervalRef.current)
-          demoIntervalRef.current = null
-        }
-        setSimulationStatus((prev) => prev ? { ...prev, status: 'completed' } : null)
-        setDemoMode(false)
-        setLogs((prev) => [...prev, '', '═══════════════════════════════════════════════',
-                                       '  DEMO COMPLETE',
-                                       '═══════════════════════════════════════════════'])
-      }
-    }, 200)
-  }, [])
-
-  // Cleanup demo interval on unmount
-  useEffect(() => {
-    return () => {
-      if (demoIntervalRef.current) {
-        clearInterval(demoIntervalRef.current)
-      }
-    }
-  }, [])
+  }, [currentCase])
 
   const tabs = [
     { id: 'control' as Tab, label: 'Control', icon: Settings },
@@ -315,9 +187,7 @@ function AppContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ParameterPanel
               onStart={handleStartSimulation}
-              onStartDemo={handleStartDemo}
               disabled={simulationStatus?.status === 'running'}
-              demoRunning={demoMode}
             />
             <SimulationMonitor
               status={simulationStatus}
