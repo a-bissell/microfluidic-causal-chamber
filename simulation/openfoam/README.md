@@ -192,15 +192,28 @@ L/w = 1 + α × (Q_disp/Q_cont)
 
 ### Parametric Sweep
 
+Preferred: the Docker-based concurrent driver (no local OpenFOAM needed;
+runs unchanged on macOS or a many-core Linux/WSL2 box):
+
 ```bash
-python scripts/run_parametric.py \
-    --base-case tjunction_2d \
-    --output-dir parametric_results \
-    --p-cont 20000 40000 60000 80000 100000 \
-    --p-disp 10000 20000 30000 40000 50000
+python3 scripts/sweep_pressure.py \
+    --base-case tjunction_2d_serpentine \
+    --output-dir ~/sweeps/psweep_5x5 \
+    --p-cont 10000 11500 13000 14500 16000 \
+    --p-disp 2400 2700 3000 3300 3600 \
+    --repeats 3 --concurrency 12          # 12 for a 12-core CPU
+
+python3 scripts/analyze_pressure_sweep.py --sweep-dir ~/sweeps/psweep_5x5
 ```
 
-This generates 25 cases (5×5 grid) with different pressure combinations.
+The analyzer writes per-case metrics, response-map heatmaps, and a
+causal-chamber-schema `causal_dataset.csv`. On WSL2, keep `--output-dir`
+inside the WSL filesystem (not `/mnt/c/...`) — OpenFOAM's many small
+writes are very slow across the Windows bridge; the driver warns if it
+detects this.
+
+Legacy sequential driver (requires a local OpenFOAM install):
+`scripts/run_parametric.py`.
 
 ## Modifying Parameters
 
