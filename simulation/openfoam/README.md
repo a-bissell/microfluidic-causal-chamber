@@ -341,6 +341,10 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/psweep5x5_2026-07/`](results/psweep5x5_2026-07/) — the first full
+  dataset: 75 cases (5×5 grid × 3 noisy repeats), droplets in all of them,
+  L/w and speed monotonic across every row and column, median repeat
+  CV 2.2%. Includes the causal-chamber-schema `causal_dataset.csv`.
 - [`results/psweep_2026-07/`](results/psweep_2026-07/) — pressure-actuated 3×3
   sweep on the serpentine case: droplets in all 9 cells, monotonic
   L/w and speed response maps (the P → Q → droplet causal mechanism).
