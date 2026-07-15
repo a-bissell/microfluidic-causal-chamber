@@ -345,6 +345,11 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
   dataset: 75 cases (5×5 grid × 3 noisy repeats), droplets in all of them,
   L/w and speed monotonic across every row and column, median repeat
   CV 2.2%. Includes the causal-chamber-schema `causal_dataset.csv`.
+- [`results/protocol_v1_2026-07/`](results/protocol_v1_2026-07/) — first
+  time-series (SET/WAIT/MSR-style) dataset: 6 chained runs, each a
+  shuffled tour of the same 3×3 grid as `psweep_2026-07`. Cross-checked
+  against that independent cold-start pilot: median |ΔL/w| = 0.7%. The
+  raw material for changepoint detection / temporal causal discovery.
 - [`results/psweep_2026-07/`](results/psweep_2026-07/) — pressure-actuated 3×3
   sweep on the serpentine case: droplets in all 9 cells, monotonic
   L/w and speed response maps (the P → Q → droplet causal mechanism).
