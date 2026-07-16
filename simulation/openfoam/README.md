@@ -341,6 +341,12 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/mesh_convergence_2026-07/`](results/mesh_convergence_2026-07/) —
+  9-point 5 µm vs 7.5 µm check on the serpentine case. Solver-level result
+  is solid (droplets form at every point, same regime as 7.5 µm); a
+  rigorous quantitative L/w comparison hit real measurement-methodology
+  limits (documented honestly, with a new but still-imperfect track-based
+  extractor and a concrete recommendation for closing the gap).
 - [`results/mill_2026-07/`](results/mill_2026-07/) — first solve of the
   millable-chip twin (`tjunction_2d_mill`): reference-point verification
   (droplets within 11–23% of the hydraulic design math) plus a 25-case

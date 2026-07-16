@@ -1,0 +1,46 @@
+/Volumes/T7/mcc/mesh_convergence/pc10k_pd2.4k: {'n_tracks': 2, 'n_complete': 2, 'L_um_median': np.float64(161.63948748726398), 'w_um_median': np.float64(119.29687502743036), 'L_over_w': np.float64(1.0775965832484264), 'frequency_Hz': np.float64(41.666666666666664), 'formation_gap_ms': 35.0}
+ first_t  last_t       L_um       w_um  n_frames
+   0.012    0.06 210.507249 135.937497        49
+   0.047    0.06 112.771726 102.656253        14
+
+/Volumes/T7/mcc/mesh_convergence/pc10k_pd3k: {'n_tracks': 3, 'n_complete': 3, 'L_um_median': np.float64(275.66426433622837), 'w_um_median': np.float64(105.15625308471499), 'L_over_w': np.float64(1.8377617622415225), 'frequency_Hz': np.float64(57.69230769230769), 'formation_gap_ms': 21.0}
+ first_t  last_t       L_um       w_um  n_frames
+   0.008   0.048 102.747581 105.156253        41
+   0.049   0.059 275.664264 135.937497        11
+   0.050   0.060 423.520512  95.156253        11
+
+/Volumes/T7/mcc/mesh_convergence/pc10k_pd3.6k: {'n_tracks': 2, 'n_complete': 1, 'L_um_median': np.float64(997.4033746402711), 'w_um_median': np.float64(52.656254410976544), 'L_over_w': np.float64(6.64935583093514), 'frequency_Hz': np.float64(18.867924528301888)}
+ first_t  last_t       L_um      w_um  n_frames
+   0.056    0.06 997.403375 52.656254         5
+
+/Volumes/T7/mcc/mesh_convergence/pc13k_pd2.4k: {'n_tracks': 2, 'n_complete': 2, 'L_um_median': np.float64(145.35023365169764), 'w_um_median': np.float64(114.29687515374098), 'L_over_w': np.float64(0.9690015576779842), 'frequency_Hz': np.float64(41.666666666666664), 'formation_gap_ms': 33.0}
+ first_t  last_t       L_um       w_um  n_frames
+   0.012    0.06 180.434785 135.937497        49
+   0.045    0.06 110.265682  92.656253        16
+
+/Volumes/T7/mcc/mesh_convergence/pc13k_pd3k: {'n_tracks': 3, 'n_complete': 2, 'L_um_median': np.float64(286.9414020096883), 'w_um_median': np.float64(108.35937519004801), 'L_over_w': np.float64(1.9129426800645888), 'frequency_Hz': np.float64(38.46153846153846), 'formation_gap_ms': 1.999999999999995}
+ first_t  last_t       L_um       w_um  n_frames
+   0.041   0.051 230.555539 126.562498        11
+   0.043   0.060 343.327265  90.156253        18
+
+/Volumes/T7/mcc/mesh_convergence/pc13k_pd3.6k: {'n_tracks': 3, 'n_complete': 2, 'L_um_median': np.float64(308.2427574554458), 'w_um_median': np.float64(107.10937567637302), 'L_over_w': np.float64(2.0549517163696387), 'frequency_Hz': np.float64(37.735849056603776), 'formation_gap_ms': 0.999999999999994}
+ first_t  last_t       L_um       w_um  n_frames
+   0.035   0.045 258.122018 126.562498        11
+   0.036   0.059 358.363497  87.656254        24
+
+/Volumes/T7/mcc/mesh_convergence/pc16k_pd2.4k: {'n_tracks': 2, 'n_complete': 2, 'L_um_median': np.float64(126.55495083890855), 'w_um_median': np.float64(107.10937476687832), 'L_over_w': np.float64(0.8436996722593904), 'frequency_Hz': np.float64(42.5531914893617), 'formation_gap_ms': 32.0}
+ first_t  last_t       L_um       w_um  n_frames
+   0.013   0.055 160.386495 126.562498        43
+   0.045   0.060  92.723407  87.656252        16
+
+/Volumes/T7/mcc/mesh_convergence/pc16k_pd3k: {'n_tracks': 4, 'n_complete': 2, 'L_um_median': np.float64(179.18177763931453), 'w_um_median': np.float64(126.56249782594386), 'L_over_w': np.float64(1.1945451842620969), 'frequency_Hz': np.float64(39.21568627450981), 'formation_gap_ms': 3.0000000000000027}
+ first_t  last_t       L_um       w_um  n_frames
+   0.032   0.046 197.977060 126.562498        15
+   0.035   0.060 160.386495 126.562498        26
+
+/Volumes/T7/mcc/mesh_convergence/pc16k_pd3.6k: {'n_tracks': 5, 'n_complete': 3, 'L_um_median': np.float64(338.3152070455253), 'w_um_median': np.float64(85.15625268046279), 'L_over_w': np.float64(2.2554347136368356), 'frequency_Hz': np.float64(56.60377358490566), 'formation_gap_ms': 11.0}
+ first_t  last_t       L_um       w_um  n_frames
+   0.032   0.040 230.555539 126.562498         9
+   0.033   0.052 338.315207  85.156253        20
+   0.054   0.060 448.580889  85.156253         7
+

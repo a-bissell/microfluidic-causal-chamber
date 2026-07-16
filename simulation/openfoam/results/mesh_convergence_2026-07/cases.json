@@ -1,0 +1,74 @@
+[
+ {
+  "name": "pc10k_pd2.4k",
+  "P_cont_nominal": 10000.0,
+  "P_disp_nominal": 2400.0,
+  "P_cont": 10000.0,
+  "P_disp": 2400.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc10k_pd3k",
+  "P_cont_nominal": 10000.0,
+  "P_disp_nominal": 3000.0,
+  "P_cont": 10000.0,
+  "P_disp": 3000.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc10k_pd3.6k",
+  "P_cont_nominal": 10000.0,
+  "P_disp_nominal": 3600.0,
+  "P_cont": 10000.0,
+  "P_disp": 3600.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc13k_pd2.4k",
+  "P_cont_nominal": 13000.0,
+  "P_disp_nominal": 2400.0,
+  "P_cont": 13000.0,
+  "P_disp": 2400.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc13k_pd3k",
+  "P_cont_nominal": 13000.0,
+  "P_disp_nominal": 3000.0,
+  "P_cont": 13000.0,
+  "P_disp": 3000.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc13k_pd3.6k",
+  "P_cont_nominal": 13000.0,
+  "P_disp_nominal": 3600.0,
+  "P_cont": 13000.0,
+  "P_disp": 3600.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc16k_pd2.4k",
+  "P_cont_nominal": 16000.0,
+  "P_disp_nominal": 2400.0,
+  "P_cont": 16000.0,
+  "P_disp": 2400.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc16k_pd3k",
+  "P_cont_nominal": 16000.0,
+  "P_disp_nominal": 3000.0,
+  "P_cont": 16000.0,
+  "P_disp": 3000.0,
+  "repeat": 0
+ },
+ {
+  "name": "pc16k_pd3.6k",
+  "P_cont_nominal": 16000.0,
+  "P_disp_nominal": 3600.0,
+  "P_cont": 16000.0,
+  "P_disp": 3600.0,
+  "repeat": 0
+ }
+]
