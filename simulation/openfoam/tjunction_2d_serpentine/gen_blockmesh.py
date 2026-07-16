@@ -14,8 +14,15 @@ The mesh is a conformal patchwork over the grid lines below; blocks only
 connect where their faces share all four vertices, so every region that
 abuts a channel of different width is split into matching strips.
 
-Run:  python3 gen_blockmesh.py   (writes system/blockMeshDict)
+Run:  python3 gen_blockmesh.py            (writes system/blockMeshDict at DX=7.5 um,
+                                            the committed/published resolution)
+      python3 gen_blockmesh.py --dx 5.0   (mesh-convergence check: NX/NY scale
+                                            proportionally from the DX=7.5 base
+                                            values, so this is a pure refinement
+                                            of the same geometry/topology, not a
+                                            different mesh design)
 """
+import argparse
 from pathlib import Path
 
 # ---- geometry (micrometres) -------------------------------------------------
@@ -27,16 +34,27 @@ W_RES_WAT = 30.0        # water resistor width -> R = 1.8e9
 L_RES_WAT = 4000.0      # water resistor length
 DEPTH = 80.0            # extruded z thickness (2D: one cell, empty patches)
 
-DX = 7.5                # transverse cell size in the two-phase region
+BASE_DX = 7.5            # transverse cell size the base NX/NY below were tuned for
+_args = argparse.ArgumentParser()
+_args.add_argument("--dx", type=float, default=BASE_DX,
+                    help="Transverse cell size (um) in the two-phase region; "
+                         "cell counts scale from the BASE_DX=7.5 tuning, so "
+                         "the default reproduces the committed mesh exactly.")
+DX = _args.parse_args().dx
 
-# grid lines (block corners must lie on these)
+# grid lines (block corners must lie on these) -- unaffected by DX; only cell
+# counts (below) change with resolution, not the geometry itself.
 XS = [-L_RES_OIL, 0.0, 537.5, 560.0, 590.0, 612.5, 1650.0]
 YS = [0.0, 37.5, 112.5, 150.0, 450.0, 450.0 + L_RES_WAT]
 ZS = [0.0, DEPTH]
 
-# cells per x/y interval (index i = interval [line_i, line_i+1])
-NX = [50, 72, 3, 4, 3, 138]     # resistor gets long streamwise cells
-NY = [5, 10, 5, 40, 50]
+# cells per x/y interval (index i = interval [line_i, line_i+1]), hand-tuned
+# at BASE_DX=7.5 um; scaled by BASE_DX/DX for other resolutions so refining
+# DX refines every interval by the same factor rather than changing the mesh
+# design. simpleGrading ratios (below) are resolution-independent.
+_scale = BASE_DX / DX
+NX = [max(1, round(n * _scale)) for n in (50, 72, 3, 4, 3, 138)]
+NY = [max(1, round(n * _scale)) for n in (5, 10, 5, 40, 50)]
 # grading per interval (blockMesh simpleGrading: last/first cell ratio)
 GX = [0.2, 1, 1, 1, 1, 1]       # oil resistor refines toward the junction
 GY = [1, 1, 1, 1, 8]            # water resistor refines toward the junction
