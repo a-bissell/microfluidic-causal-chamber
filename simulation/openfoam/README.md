@@ -341,6 +341,12 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/mill_2026-07/`](results/mill_2026-07/) — first solve of the
+  millable-chip twin (`tjunction_2d_mill`): reference-point verification
+  (droplets within 11–23% of the hydraulic design math) plus a 25-case
+  operating-window sweep, L/w and speed perfectly monotonic across the
+  whole pressure window. Also fixed a geometry-hardcoding bug in the
+  analysis scripts along the way (now parameterized, regression-checked).
 - [`results/psweep5x5_2026-07/`](results/psweep5x5_2026-07/) — the first full
   dataset: 75 cases (5×5 grid × 3 noisy repeats), droplets in all of them,
   L/w and speed monotonic across every row and column, median repeat

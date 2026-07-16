@@ -16,6 +16,17 @@ extract_droplets.py's DropletExtractor on every case, and writes:
 
 Usage:
     python3 analyze_pressure_sweep.py --sweep-dir ./sweep_out
+
+    # Non-default geometry (e.g. tjunction_2d_mill, 400 um channels with a
+    # feed serpentine before the junction) MUST override the geometry
+    # parameters below, or every downstream number is silently wrong:
+    # channel height caps the free-droplet y filter, the outlet window and
+    # frequency reference line are meaningless if they land upstream of the
+    # junction, and a length cap tuned for ~200 um droplets truncates larger
+    # slugs from a wider channel.
+    python3 analyze_pressure_sweep.py --sweep-dir ./mill_sweep_out \\
+        --w-main-um 400 --x-junction-um 2400 --x-ref-um 4000 \\
+        --outlet-x-min-um 2400 --outlet-x-max-um 6400 --free-length-max-um 2000
 """
 import argparse
 import json
@@ -28,10 +39,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 from extract_droplets import DropletExtractor  # noqa: E402
 
-W_MAIN_UM = 150.0
 
-
-def analyze_case(c, sweep_dir: Path):
+def analyze_case(c, sweep_dir: Path, geom):
     d = sweep_dir / c["name"]
     row = dict(c)
     log = d / "log.interFoam"
@@ -40,7 +49,9 @@ def analyze_case(c, sweep_dir: Path):
     if not ok:
         return row
 
-    ex = DropletExtractor(d)
+    ex = DropletExtractor(d, w_main_m=geom["w_main_um"] * 1e-6,
+                          x_junction_m=geom["x_junction_um"] * 1e-6 if geom["x_junction_um"] is not None else None,
+                          x_ref_m=geom["x_ref_um"] * 1e-6 if geom["x_ref_um"] is not None else None)
     df, summary = ex.process_case()
     row["frequency_Hz"] = summary["frequency_Hz"]
     row["n_detections"] = summary["n_droplets_total"]
@@ -48,23 +59,23 @@ def analyze_case(c, sweep_dir: Path):
         row["n_free"] = 0
         return row
 
-    free = df[(df["centroid_y"] < 150) & (df["length"] < 500)
-              & (df["centroid_x"].between(700, 1450))]
+    in_outlet = (df["centroid_y"] < geom["w_main_um"]) & (df["length"] < geom["free_length_max_um"])
+    free = df[in_outlet & df["centroid_x"].between(geom["outlet_x_min_um"], geom["outlet_x_max_um"])]
     row["n_free"] = len(free)
     if len(free):
         row["L_um"] = free["length"].median()
         row["w_um"] = free["width"].median()
         row["d_eq_um"] = free["d_equivalent"].median()
-        row["L_over_w"] = row["L_um"] / W_MAIN_UM
+        row["L_over_w"] = row["L_um"] / geom["w_main_um"]
         row["polydispersity"] = (free["d_equivalent"].std() / free["d_equivalent"].mean()
                                   if free["d_equivalent"].mean() > 0 else np.nan)
 
-    allfree = df[(df["centroid_y"] < 150) & (df["length"] < 500)].sort_values("time")
+    allfree = df[in_outlet].sort_values("time")
     speeds = []
     groups = list(allfree.groupby("time"))
     for (t0, g0), (t1, g1) in zip(groups[:-1], groups[1:]):
         dx = g1["centroid_x"].max() - g0["centroid_x"].max()
-        if 0 < dx < 200:
+        if 0 < dx < geom["speed_dx_max_um"]:
             speeds.append(dx * 1e-6 / (t1 - t0))
     if speeds:
         row["v_drop_mm_s"] = np.median(speeds) * 1000
@@ -153,10 +164,31 @@ def make_causal_dataset(res: pd.DataFrame, out_path: Path):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--sweep-dir", required=True, type=Path)
+    p.add_argument("--w-main-um", type=float, default=150.0,
+                   help="Main channel width in um (default: the original 150 um case's)")
+    p.add_argument("--x-junction-um", type=float, default=None,
+                   help="X position (um) marking the end of the T-junction; "
+                        "default reproduces the original case's derivation")
+    p.add_argument("--x-ref-um", type=float, default=None,
+                   help="Frequency-counter reference line (um); default is 1000 (the "
+                        "original case's mid-outlet point)")
+    p.add_argument("--outlet-x-min-um", type=float, default=700.0)
+    p.add_argument("--outlet-x-max-um", type=float, default=1450.0)
+    p.add_argument("--free-length-max-um", type=float, default=500.0,
+                   help="Upper length cap distinguishing a real droplet from a "
+                        "still-attached feed thread; scale up for wider channels")
+    p.add_argument("--speed-dx-max-um", type=float, default=200.0,
+                   help="Max plausible per-frame advection distance for tracking "
+                        "the same droplet across frames")
     args = p.parse_args()
+    geom = {"w_main_um": args.w_main_um, "x_junction_um": args.x_junction_um,
+            "x_ref_um": args.x_ref_um, "outlet_x_min_um": args.outlet_x_min_um,
+            "outlet_x_max_um": args.outlet_x_max_um,
+            "free_length_max_um": args.free_length_max_um,
+            "speed_dx_max_um": args.speed_dx_max_um}
 
     cases = json.loads((args.sweep_dir / "cases.json").read_text())
-    rows = [analyze_case(c, args.sweep_dir) for c in cases]
+    rows = [analyze_case(c, args.sweep_dir, geom) for c in cases]
     res = pd.DataFrame(rows)
     res.to_csv(args.sweep_dir / "results.csv", index=False)
 

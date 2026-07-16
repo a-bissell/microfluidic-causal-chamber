@@ -53,6 +53,9 @@ as the other cases; endTime 0.3 s ≈ startup + 2 droplet periods
 ## Status
 
 - [x] Mesh generated and checkMesh-clean; setFields regions verified
-- [ ] Solver verification at the reference point (queued behind the
-      2026-07 5×5 baseline sweep)
-- [ ] Operating-window sweep → the map hardware data lands on
+- [x] Solver verification at the reference point — droplets confirmed,
+      slug length/speed/frequency within 11–23% of the design math (see
+      `../results/mill_2026-07/`)
+- [x] Operating-window sweep → the map hardware data lands on: 25/25 cells
+      form droplets, L/w and speed perfectly monotonic across the ±18%
+      pressure window (see `../results/mill_2026-07/`)

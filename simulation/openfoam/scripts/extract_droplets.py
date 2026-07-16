@@ -44,25 +44,41 @@ class DropletExtractor:
     Extract droplet metrics from OpenFOAM VTK output.
     """
     
-    def __init__(self, case_dir, alpha_threshold=0.5):
+    def __init__(self, case_dir, alpha_threshold=0.5, w_main_m=150e-6,
+                 x_junction_m=None, x_ref_m=None):
         """
         Initialize the droplet extractor.
-        
+
         Args:
             case_dir: Path to OpenFOAM case directory
             alpha_threshold: Threshold for water phase (alpha > threshold = water)
+            w_main_m: Main channel width in metres. Only the original
+                150 um-channel cases (tjunction_2d, tjunction_2d_serpentine)
+                match the default; other geometries (e.g. tjunction_2d_mill,
+                400 um channels) must pass their own value, or every
+                downstream y-extent/L-over-w number is silently wrong.
+            x_junction_m: X position marking the end of the T-junction
+                (droplets are only counted for x > this). Defaults to the
+                original case's derivation (0.5mm + w_main); geometries with
+                a different layout (e.g. a feed serpentine before x=0, as in
+                tjunction_2d_mill) must pass this explicitly.
+            x_ref_m: Reference line for the frequency crossing-counter.
+                Defaults to 1 mm from the origin (the original case's
+                mid-outlet point); must be re-specified for geometries where
+                that x position isn't inside the outlet.
         """
         self.case_dir = Path(case_dir)
         self.vtk_dir = self.case_dir / "VTK"
         self.alpha_threshold = alpha_threshold
-        
+
         # Physical parameters (from blockMeshDict)
-        self.w_main = 150e-6    # Main channel width (m)
-        self.w_disp = 75e-6     # Dispersed channel width (m)
-        self.depth = 80e-6      # Channel depth (m)
-        
+        self.w_main = w_main_m   # Main channel width (m)
+        self.w_disp = 75e-6      # Dispersed channel width (m)
+        self.depth = 80e-6       # Channel depth (m)
+
         # Junction location (for frequency calculation)
-        self.x_junction = 0.0005 + self.w_main  # End of junction
+        self.x_junction = x_junction_m if x_junction_m is not None else (0.0005 + self.w_main)
+        self.x_ref = x_ref_m if x_ref_m is not None else 0.001
         
     def find_vtk_files(self):
         """Find all VTK files sorted by time."""
@@ -238,8 +254,8 @@ class DropletExtractor:
         if len(times) < 2:
             return 0.0
 
-        # Reference position for counting (mid-outlet)
-        x_ref = 0.001  # 1 mm from inlet
+        # Reference position for counting (mid-outlet); see __init__ docstring
+        x_ref = self.x_ref
 
         counts = [sum(1 for d in drops if d['centroid_x'] > x_ref)
                   for drops in all_droplets]
