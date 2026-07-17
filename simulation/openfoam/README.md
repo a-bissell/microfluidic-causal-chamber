@@ -343,10 +343,12 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
 - [`results/mesh_convergence_2026-07/`](results/mesh_convergence_2026-07/) —
   9-point 5 µm vs 7.5 µm check on the serpentine case. Solver-level result
-  is solid (droplets form at every point, same regime as 7.5 µm); a
-  rigorous quantitative L/w comparison hit real measurement-methodology
-  limits (documented honestly, with a new but still-imperfect track-based
-  extractor and a concrete recommendation for closing the gap).
+  is solid at every point (droplets form, same regime as 7.5 µm). After a
+  follow-up run at 2× endTime, 4 of 9 points have clean, repeatable L/w
+  measurements agreeing with the published 7.5 µm data to within 3–19%;
+  the other 5 (high total flow) surfaced a genuinely open question — either
+  a domain-length-limited clustering artifact or a real regime transition
+  at the sweep's highest-flow corner — flagged with a concrete next step.
 - [`results/mill_2026-07/`](results/mill_2026-07/) — first solve of the
   millable-chip twin (`tjunction_2d_mill`): reference-point verification
   (droplets within 11–23% of the hydraulic design math) plus a 25-case

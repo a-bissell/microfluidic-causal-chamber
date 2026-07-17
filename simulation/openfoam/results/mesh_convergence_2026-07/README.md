@@ -2,12 +2,65 @@
 
 Answers the caveat carried by every serpentine-based dataset so far
 ("2D, coarse mesh: quantitatively indicative, not converged. Re-run the
-repo-resolution (5 µm)..."). **Verdict: inconclusive on a rigorous
-point-by-point basis — not because the solver disagrees, but because
-measuring droplet length reliably from VTK output turned out to be
-genuinely harder at 5 µm than the existing tooling was built for.** That
-finding is itself worth having; see below for what's trustworthy and what
-isn't.
+repo-resolution (5 µm)..."). Two passes: an initial `endTime = 0.06 s` run
+(too short — cases were caught mid-formation-cycle, giving 2 solid
+comparison points and several ambiguous ones) and a follow-up at
+`endTime = 0.12 s` on the same 9 cases, which resolved most of that
+ambiguity. **Verdict (v2): 4 of 9 points now have clean, internally
+self-consistent measurements agreeing with the 7.5 µm data to within
+3–19% — reasonable agreement, improving at higher pressure. The other 5
+hit a new, distinct issue at high droplet throughput (see below) that's a
+genuine open question, not obviously an artifact.**
+
+## Update — rerun at endTime = 0.12 s
+
+Same 9 cases, same 5 µm mesh, `endTime` doubled (~33–38k s/case, ~9–11h
+wall-clock spread across the run). All 9 solved cleanly again.
+
+**4 points now have strong, repeatable evidence** — 3 independent
+near-identical length readings per case, each spanning 40+ frames (a third
+to half of the whole run), not just one lucky plateau:
+
+| Point | 5 µm L/w (n independent tracks) | 7.5 µm mean (psweep5x5) | Diff |
+|---|---|---|---|
+| pc16k_pd3k | 1.175 (6 tracks, scattered 120–205) | 1.136 | +3.4% |
+| pc16k_pd2.4k | 1.092 (3 tracks: 160, 165, 165) | 1.036 | +5.4% |
+| pc13k_pd2.4k | 1.236 (3 tracks: 180, 185, 190) | 1.136 | +8.8% |
+| pc10k_pd2.4k | 1.554 (3 tracks: 211, 236, 253) | 1.303 | +19.2% |
+
+Agreement is best at high pressure and degrades toward the low-pressure
+corner — physically sensible (higher Ca means faster, more decisive
+pinch-off, less sensitive to small numerical differences near a marginal
+regime boundary). None of these differences is alarming for a 2D,
+first-refinement mesh study.
+
+**5 points (all P_disp = 3.6 kPa, plus pc10k_pd3k) show a new pattern**:
+repeated detections at exactly `length ≈ 997.4 µm` — essentially the
+*entire* outlet channel length — appearing persistently in the back half
+of the longer run. Two candidate explanations, not yet distinguished:
+
+1. **Post-processing artifact**: these are the highest-total-flow cases,
+   so more droplets form and queue up in the fixed ~1000 µm outlet within
+   0.12 s; if their spacing shrinks below `2×dx`, the naive gap-based
+   clustering in `detect_droplets_2d` would merge adjacent droplets into
+   one apparent blob.
+2. **Genuine physics**: `pc16k_pd3.6k` (the single highest-flow corner of
+   the whole grid) shows a *different* signature — not the 997.4 µm
+   plateau, but a sequence of tracks with steadily increasing length
+   (230 → 338 → 449 → 524 → 531 → 581 µm across the run) — consistent with
+   a real transition toward a longer-slug or jetting-adjacent regime as
+   the transient clears, not a clustering bug. If real, that's a
+   legitimate and interesting finding: the highest-flow corner of the
+   sweep may not have reached steady state within the original
+   `endTime = 0.06 s`, and the published `psweep5x5` value there could be
+   a transient snapshot rather than the asymptotic behavior.
+
+Distinguishing these needs either a longer outlet domain (removes the
+queuing explanation) or direct visual inspection of the alpha field near
+`length ≈ 997 µm` (confirms whether it's one continuous water body or
+several close droplets) — out of scope for this pass.
+
+**Original (endTime = 0.06 s) findings below, unchanged, for reference.**
 
 ## Setup
 
@@ -111,6 +164,18 @@ Highest-value follow-up, in order:
 
 - `results_default_filter_UNRELIABLE.csv` — first-pass output from the
   existing pipeline; kept for transparency, known wrong, do not use.
-- `mature_extractor_output.txt` — `extract_mature_droplets.py`'s raw
-  per-track output for all 9 cases, the basis for the table above.
-- `cases.json` — case definitions (pressures, endTime, etc.)
+- `mature_extractor_output.txt` / `cases.json` — endTime=0.06s pass.
+- `mature_extractor_output_v2_endtime0.12.txt` / `cases_v2_endtime0.12.json`
+  — endTime=0.12s rerun, the basis for the updated table above.
+
+## Recommendation (updated)
+
+The 4 clean points give reasonable confidence the published response
+surfaces aren't quantitatively wrong at low-to-moderate P_disp. The
+high-P_disp corner needs one more targeted check before trusting it:
+extend the outlet domain length in `gen_blockmesh.py` (a few hundred µm
+is likely enough) and re-run just `pc10k_pd3.6k` and `pc16k_pd3.6k` — if
+the 997.4 µm signature disappears, it was queuing/clustering; if
+`pc16k_pd3.6k`'s length keeps climbing, the growing-slug trend is real and
+the published `psweep5x5` value at that corner should be flagged as
+possibly transient.
