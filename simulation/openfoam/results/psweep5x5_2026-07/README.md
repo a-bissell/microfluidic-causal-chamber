@@ -21,6 +21,17 @@ off-repo; this folder is the curated summary.
   crossing-counter undercount seen in the 3×3, though values remain
   quantized (integer crossings over a ~60 ms window). Use per-droplet
   intervals from the raw VTK for fine-grained frequency work.
+- **Regime-boundary flag (added after the 2026-07 mesh-convergence
+  campaign)**: the P_disp = 3.6 kPa row — especially its low-P_cont end —
+  sits near a period-doubled (alternating large/small slug) emission
+  boundary; see `../mesh_convergence_2026-07/`. In that region a single
+  "L/w" per cell under-describes the behavior, and values are sensitive
+  to mesh resolution and downstream (outlet) resistance. The interior of
+  the grid is unaffected (5 µm refinement agrees within 3–19%, best at
+  high P_cont). Treat the top row as regime-boundary-adjacent rather than
+  converged point measurements — or as an interesting feature: a real
+  bifurcation inside the actuator window is exactly the kind of
+  mechanism-change ground truth the chamber exists to provide.
 
 ## Files
 

@@ -1,0 +1,14 @@
+/Volumes/T7/mcc/mesh_convergence_longoutlet/pc10k_pd3.6k: {'n_tracks': 5, 'n_complete': 5, 'L_um_median': np.float64(477.4999979417771), 'w_um_median': np.float64(131.25000350555638), 'L_over_w': np.float64(3.1833333196118474), 'frequency_Hz': np.float64(45.45454545454545), 'formation_gap_ms': 17.0}
+ first_t  last_t       L_um       w_um  n_frames
+   0.010   0.057 477.499998 131.250004        48
+   0.058   0.120 269.999960 135.937497        63
+   0.060   0.090 549.999997 112.500004        31
+   0.091   0.120 245.000003 135.937497        30
+   0.094   0.120 532.499980 112.500004        27
+
+/Volumes/T7/mcc/mesh_convergence_longoutlet/pc16k_pd3.6k: {'n_tracks': 3, 'n_complete': 3, 'L_um_median': np.float64(164.9999903747812), 'w_um_median': np.float64(126.56249782594386), 'L_over_w': np.float64(1.0999999358318746), 'frequency_Hz': np.float64(28.30188679245283), 'formation_gap_ms': 35.50000000000001}
+ first_t  last_t       L_um       w_um  n_frames
+   0.014    0.12 165.000092 126.562498       107
+   0.048    0.12 164.999990 126.562498        73
+   0.085    0.12 164.999961 131.249997        36
+

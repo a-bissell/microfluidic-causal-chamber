@@ -60,6 +60,53 @@ queuing explanation) or direct visual inspection of the alpha field near
 `length ≈ 997 µm` (confirms whether it's one continuous water body or
 several close droplets) — out of scope for this pass.
 
+## Update 2 — extended-outlet recheck (v3): 997 µm signature resolved
+
+Reran the two most-affected cases (`pc10k_pd3.6k`, `pc16k_pd3.6k`) at 5 µm
+with the outlet tripled to 3000 µm (`gen_blockmesh.py --l-outlet 3000`,
+24,797 cells; ~24–27 h/case). Both solved cleanly.
+
+**The 997 µm signature and the "climbing length" trend are both gone.**
+No full-channel water bodies, no runaway slug growth. The earlier
+pathology was droplets crowding and coalescing in the too-short outlet —
+a measurement-domain artifact, not chamber physics. Specifically:
+
+- `pc16k_pd3.6k`: three independent tracks all at **exactly 165.0 µm**
+  (agreement to ±0.1 µm, each tracked 36–107 frames), steady 35.5 ms
+  rhythm. The cleanest measurement of the whole campaign — a stable,
+  monodisperse slug train. The "growing-slug regime" hypothesis is
+  refuted at this corner.
+- `pc10k_pd3.6k`: five tracks in a clear **alternating large/small
+  pattern** — 478, 270, 550, 245, 532 µm in formation order (L/w
+  alternating ≈ 3.4 / ≈ 1.7). This is classic period-doubled (doublet)
+  emission, a real and well-documented droplet-generation phenomenon
+  near regime boundaries. The high-water corner of the grid genuinely
+  sits near an emission-instability boundary.
+
+**An honest confound, discovered during analysis:** tripling the outlet
+also triples the outlet channel's hydraulic resistance, raising the
+junction pressure from ~0.66 kPa to ~1.9 kPa at reference flow. The
+extended-outlet cases therefore run at a *shifted operating point* (lower
+effective water drive at the same inlet pressures), so their L/w values
+must NOT be quantitatively compared against the short-outlet published
+numbers — e.g. the drop from 1.29 (published, 7.5 µm short) to 1.10
+(this run, 5 µm long) at pc16k_pd3.6k mixes outlet de-crowding, mesh
+refinement, and the operating-point shift inseparably. The qualitative
+conclusions above (no artifact blob, no runaway growth, stable
+monodisperse emission at 16k, period-doubled emission at 10k) are
+internal to the extended-outlet configuration and unaffected. A future
+apples-to-apples version would compensate the inlet pressures for the
+added outlet resistance, or report against measured junction pressure.
+
+**Final convergence verdict across the campaign:**
+- 4 interior/low-water points: converged within 3–19% (best at high Ca).
+- High-water corner (P_disp = 3.6 kPa): near a period-doubling emission
+  boundary; single-valued "slug length" is not a well-posed summary
+  there, and values are sensitive to mesh, endTime, and downstream
+  resistance. The corresponding `psweep5x5_2026-07` cells should be
+  treated as regime-boundary-adjacent rather than converged point
+  measurements (noted in that dataset's README).
+
 **Original (endTime = 0.06 s) findings below, unchanged, for reference.**
 
 ## Setup
