@@ -1,0 +1,24 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      decomposeParDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// 84k cells / 6 ranks = 14k cells per rank — the regime where MPI should
+// pay off (the earlier 2D pathology was at 1-2k cells/rank). Verify with
+// the smoke test before committing to a parallel full run.
+
+numberOfSubdomains  6;
+
+method              scotch;
+
+// ************************************************************************* //

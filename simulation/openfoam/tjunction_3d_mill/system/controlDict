@@ -1,0 +1,67 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  11                                    |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     foamRun;
+
+solver          incompressibleVoF;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+// ~9 Hz expected at the reference point -> ~2 droplet periods + startup.
+endTime         0.3;
+
+deltaT          1e-7;
+
+writeControl    adjustableRunTime;
+
+writeInterval   0.005;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  8;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   8;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+
+maxCo           0.5;
+
+maxAlphaCo      0.5;
+
+// Capillary timestep limit sqrt(rho*dx^3/(2*pi*sigma)) ~ 8e-7 s at dx = 5 um.
+// interFoam does not enforce it; at the new low velocities the Courant limit
+// alone would allow dt ~ 1e-4 and parasitic currents would destroy the
+// interface, so cap dt just below the capillary limit.
+maxDeltaT       5e-6;     // capillary limit ~6.4e-6 s at the 20 um cells
+
+// No function objects for now - simpler run
+functions
+{
+}
+
+// ************************************************************************* //

@@ -1,0 +1,61 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  11                                    |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      alpha.water;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    oil_inlet
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    water_inlet
+    {
+        type            fixedValue;
+        value           uniform 1;
+    }
+
+    outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 0;
+        value           uniform 0;
+    }
+
+    walls
+    {
+        // Strongly oil-wet walls: theta0 measured through the water phase,
+        // 160 deg keeps the water thread off the walls so it can neck and
+        // pinch off (120 deg let water spread as a stable wall film).
+        // ESI (v2306+) name: constantAlphaContactAngle
+        // Foundation (11+) name: contactAngle
+        type            constantAlphaContactAngle;
+        theta0          160;
+        limit           gradient;
+        value           uniform 0;
+    }
+
+    symmetryPlane
+    {
+        type            symmetry;
+    }
+}
+
+// ************************************************************************* //

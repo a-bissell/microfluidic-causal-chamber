@@ -1,0 +1,56 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    oil_inlet
+    {
+        // Velocity-driven fidelity check: identical operating point to the
+        // verified tjunction_2d_mill reference (Ca = 0.032, q = 0.25).
+        // Uniform inflow; the 2 mm approach is ~5 channel widths, enough
+        // for the laminar profile to develop before the junction.
+        type            fixedValue;
+        value           uniform (0.02 0 0);
+    }
+
+    water_inlet
+    {
+        type            fixedValue;
+        value           uniform (0 -0.01 0);
+    }
+
+    outlet
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    symmetryPlane
+    {
+        type            symmetry;
+    }
+
+    walls
+    {
+        type            noSlip;
+    }
+}
+
+// ************************************************************************* //
