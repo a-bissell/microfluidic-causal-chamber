@@ -20,6 +20,10 @@ formation events, 90 ms apart.
 | Frequency | ~9 Hz | 11.1 Hz (hand-counted from 3 formation events) | +23% |
 
 The chip design is now simulation-confirmed, not just algebra.
+`droplet_filmstrip.png` shows the run: water column descends (5 ms), the
+tongue bends into the cross-flow and blocks the junction (50 ms), the
+first ~600 µm slug detaches and transits (90–110 ms), and the cycle
+settles into its steady ~90 ms rhythm (150–300 ms).
 
 ## Operating-window sweep
 
