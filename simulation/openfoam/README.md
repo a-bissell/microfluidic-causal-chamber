@@ -341,6 +341,11 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/mill3d_2026-07/`](results/mill3d_2026-07/) — the first 3D run:
+  the millable chip's junction in full 3D at the 2D-verified operating
+  point. Slug length matches 2D within +3% (length maps certified);
+  speed ×1.43 and frequency ×2.4 vs 2D — the measured corner-gutter
+  correction, now baked into the hardware first-light expectations.
 - [`results/mesh_convergence_2026-07/`](results/mesh_convergence_2026-07/) —
   9-point 5 µm vs 7.5 µm check on the serpentine case. Solver-level result
   is solid at every point (droplets form, same regime as 7.5 µm). After a
