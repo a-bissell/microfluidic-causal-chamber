@@ -25,8 +25,12 @@ CNC-milled PMMA (single 1/64" endmill, 0.4 mm deep), 3M 468MP bonding,
 | P_disp | ~1.8 kPa | ~18 cm water column |
 | Capillary entry threshold | ~150 Pa | (vs ~800 Pa at 150 µm — wide stable window) |
 
-Expected observables: **~9 Hz** droplet formation, **~540 µm** slugs,
-**~25 mm/s** advection. A 60 fps camera oversamples this comfortably.
+Expected observables — updated after the 3D fidelity check
+([`../results/mill3d_2026-07/`](../results/mill3d_2026-07/)): **~620 µm
+slugs at ~27 Hz, ~40 mm/s**. This 2D case's slug length transfers to 3D
+within +3% (so the length response maps remain the bench-tuning chart),
+but corner-gutter flow makes the real beat 2.4× faster than 2D predicts —
+**film at ≥120 fps**, not 60.
 
 Both pressures sit inside the guide's balloon rig range (~2–4 kPa), but for
 causal-chamber use the actuators must be *measured and repeatable*:
