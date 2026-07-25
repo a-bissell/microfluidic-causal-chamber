@@ -341,6 +341,12 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/cyclicity_2026-07/`](results/cyclicity_2026-07/) — **actuation
+  mode determines the causal graph**: pressure-driven inlets oscillate 41%
+  peak-to-peak at exactly the droplet frequency, correlated r = +0.998 at
+  zero lag (a physics-delivered confounded pair); velocity-driven inlets
+  are flat to six significant figures (severed edges — a syringe pump as
+  physical do-operator). Verified on existing runs; no new simulation.
 - [`results/mill3d_2026-07/`](results/mill3d_2026-07/) — the first 3D run:
   the millable chip's junction in full 3D at the 2D-verified operating
   point. Slug length matches 2D within +3% (length maps certified);
