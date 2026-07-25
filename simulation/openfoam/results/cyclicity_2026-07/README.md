@@ -68,6 +68,68 @@ dataset where the correct causal answer *depends on the sampling rate*,
 with physics stating which answer is right at which rate — directly
 relevant to the causal-discovery-under-subsampling literature.
 
+## Sampling-rate pathologies (demonstrated, not argued)
+
+The cyclicity result above says the *equilibrium* graph depends on the
+actuator. This section shows the companion effect: what an analyst
+concludes depends on the **sampling rate**, demonstrated by decimating the
+1 ms flux record rather than by argument. See
+`sampling_rate_pathologies.png` and `sampling_rate_sweep.csv`.
+
+The true cycle is 44.8 Hz, so Nyquist requires sampling faster than
+11.2 ms. Two decimation modes were compared, because they correspond to
+two real measurement modalities:
+
+- **Subsampling** (a strobe, or a camera with short exposure at low frame
+  rate): the variance survives but is *relocated*. Apparent frequency goes
+  44.8 → 38.5 → 17.7 → **5.2 Hz** as the interval goes 8 → 12 → 16 → 20 ms.
+  At 20 ms the 45 Hz droplet cycle masquerades as a slow 5 Hz mode — an
+  oscillation the chamber does not have.
+- **Aggregation** (an integrating sensor, a long-exposure frame, an RC-
+  filtered pressure line): the cycle is *hidden* instead. Water-inlet CV
+  collapses monotonically 9.9% → 2.2%, and the chamber increasingly looks
+  like a steady input-output map with no dynamics at all.
+
+Same underlying data, two opposite errors: invent structure, or erase it.
+
+**The unexpected result: the confounding survives everything.**
+`corr(Q_oil, Q_water)` stays in 0.996–0.999 at *every* sampling interval,
+in *both* decimation modes. The instantaneous fork through the junction
+pressure node is robust; only the temporal structure is fragile. That
+splits methods cleanly:
+
+- Contemporaneous/instantaneous discovery (LiNGAM-style) should return a
+  consistent answer at every rate — the fork is always visible.
+- Lag-based discovery (Granger, VAR, PCMCI) should be *confidently wrong*
+  below Nyquist, reporting a 5 Hz mechanism that does not exist.
+
+That is a sharp, falsifiable prediction about method behaviour, on a
+system where the right answer is known at every rate — and it is the
+concrete form of the "the correct answer depends on your sampling rate"
+claim.
+
+### Hardware consequence
+
+Camera frame rate and sensor sampling rate are **experimental variables,
+not instrument specs**. Record as fast as affordable and decimate in post,
+so one physical experiment yields the whole family of datasets; a slow
+recording can never be un-slowed. This revises the earlier ">=120 fps"
+guidance (which was the floor for merely *counting* droplets at 27 Hz):
+for sampling-rate studies, target 500-1000 fps and kHz-rate pressure
+logging.
+
+### Caveats
+
+- The record is 86 samples at 1 ms (0.085 s). At 20 ms decimation that is
+  5 points, so the coarse-rate CV values are noisy; the apparent
+  frequencies are the analytic alias predictions, visually corroborated by
+  the figure rather than fitted. A longer run (0.5-1 s) would make the
+  aliased peaks statistically solid.
+- Most subsampling theory assumes stochastic processes; this cycle is
+  near-deterministic. Arguably more interesting — deterministic dynamics
+  that look like noise to any i.i.d.-assuming method — but a different
+  regime than the theory was built for.
+
 ## Files
 
 - `actuation_mode_comparison.png` — the two-panel figure.
