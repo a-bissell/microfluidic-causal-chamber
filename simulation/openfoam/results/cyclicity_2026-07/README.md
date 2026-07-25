@@ -31,7 +31,7 @@ inlet patches, Newell method).
 | Q_oil fluctuation | 6.4% peak-to-peak | 0.00% |
 | flux cycle period | 22.3 ms (**44.8 Hz**) | — (flat) |
 | droplet period (measured independently) | 22.0 ms (44.6 Hz) | — |
-| corr(Q_oil, Q_water) | **+0.998 at zero lag** | undefined (both constant) |
+| corr(Q_oil, Q_water) | +0.998 *(case-specific — see correction below)* | undefined (both constant) |
 
 The velocity-driven control is flat to six significant figures — flow
 imposed, junction cannot push back. The pressure-driven case oscillates as
@@ -39,12 +39,11 @@ a relaxation cycle locked to droplet formation: the flux period and the
 independently-measured droplet formation period agree to **1.4%**, so the
 inlets are being clocked by the droplets.
 
-**The zero-lag near-unity correlation is the causally interesting part.**
-Q_oil and Q_water are not causing each other; they are driven simultaneously
-by an unmeasured common cause (the junction pressure node). That is a
-textbook confounded pair delivered by physics — a method seeing only the
-two flow rates should infer a spurious direct edge, and the ground truth
-says it is a fork.
+**Both inlets are driven by an unmeasured common cause** — the junction
+pressure node. Neither causes the other; a method seeing only the two flow
+rates should infer a spurious direct edge where the ground truth is a fork.
+(The strength of that signature is *not* a robust number — see the
+correction below.)
 
 Across five operating points spanning the sweep window (`flux_summary.csv`):
 water-inlet modulation 21–83% peak-to-peak, oil 3.5–7.0% in all cases —
@@ -54,6 +53,67 @@ low-P_disp corner where water sits near the capillary entry threshold and
 its dynamics change character. That variation is itself a usable feature —
 coupling strength is tunable by operating point — but it means "r ≈ 1" is a
 property of part of the window, not all of it.
+
+## Same-geometry A/B (2026-07-18) — and a correction
+
+The first pass compared a pressure-driven 2D serpentine run against a
+velocity-driven 3D mill run: different geometries. This is the controlled
+version — **identical mesh, identical endTime, identical 1 ms sampling,
+`diff` confirming only `0/U` and `0/p_rgh` differ.** The velocity arm's
+inlet speeds (39.67 / 34.17 mm/s) were set from the *measured* mean flux
+of the pressure arm on the same mesh, so both arms sit at the same
+operating point.
+
+**The headline result is stronger than the first pass.** The two arms
+produce essentially the same droplets:
+
+| | pressure arm | velocity arm |
+|---|---|---|
+| slug length | 188 µm | 180 µm (−4%) |
+| formation gap | 21.0 ms | 21.0 ms (identical) |
+| droplet frequency | 45.0 Hz | 44.6 Hz (−0.9%) |
+| **Q_water fluctuation** | **9.9% CV** | **0.00%** |
+| **Q_oil fluctuation** | **2.2% CV** | **0.00%** |
+
+An observer measuring only the droplets cannot tell the arms apart. An
+observer with flow sensors distinguishes them instantly. Two different
+causal structures, the same observable output distribution — which is
+precisely why instrumenting the mediators is not optional, and is a clean
+physical illustration of why observational equivalence is a real hazard.
+
+Flux period locks to the droplet clock exactly: autocorrelation gives
+21 ms against a 21.0 ms measured formation gap.
+
+### Correction: the r ≈ 1 claim was not robust
+
+The first pass reported `corr(Q_oil, Q_water) = +0.998 at zero lag` as a
+headline "confounded pair" signature. **That number is case- and
+mesh-specific and should not be quoted as a property of the chamber.** The
+same nominal conditions (13/3 kPa) on the 7.5 µm mesh give **r = +0.31**,
+and the earlier five-point survey already spanned 0.27–1.00.
+
+The reason is visible in the phase-averaged cycle
+(`ab_same_geometry.png`, right panel): **the coupling is impulsive, not
+sinusoidal.** For ~12 ms of each 21 ms cycle the system is quiescent —
+water ramps up smoothly while oil sits flat to ±1%, because the oil
+resistor isolates it. Then pinch-off fires: water collapses ~22%, oil
+jumps ~5%, and both recover over ~8 ms. A linear correlation coefficient
+is simply the wrong summary statistic for that shape; computed over the
+transient alone it is even *negative* (−0.53), since the two move
+oppositely during the collapse.
+
+What is robust across every pressure-driven case measured:
+
+1. flux oscillates at **exactly** the droplet formation period,
+2. the modulation is large (Q_water ~10% CV, up to 40% peak-to-peak),
+3. the velocity-driven control is flat to six significant figures,
+4. droplet output is nearly unchanged between arms.
+
+The corrected picture is arguably the more interesting one for causal ML:
+a **nonlinear, impulsive, state-dependent** coupling is a harder and more
+realistic target than a linear confounded pair, and linear-Gaussian
+methods will under-detect it precisely because the dependence is
+concentrated in ~30% of the duty cycle.
 
 ## An important qualification: cyclicity is timescale-relative
 
