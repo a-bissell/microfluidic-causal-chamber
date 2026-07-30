@@ -341,17 +341,28 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/scaleup_2026-07/`](results/scaleup_2026-07/) — **the chamber
+  scales**: 400 → 600 → 800 µm reproduce each other to within 4% on every
+  observable (L/w 1.500/1.554/1.550, speed flat at ~28 mm/s, f ∝ 1/w,
+  Q ∝ w²), with the 600 and 800 µm points predicted out-of-sample from the
+  verified 400 µm one. Drops the fabrication bar from a 1/64" endmill to a
+  0.6–0.8 mm tool (stiffness ∝ d⁴). Bo = 0.008 at 800 µm, so there is ~10×
+  more width headroom before gravity matters; the binding constraint is
+  actuation tolerance, not physics.
 - [`results/cyclicity_2026-07/`](results/cyclicity_2026-07/) — **actuation
-  mode determines the causal graph**: pressure-driven inlets oscillate 41%
-  peak-to-peak at exactly the droplet frequency, correlated r = +0.998 at
-  zero lag (a physics-delivered confounded pair); velocity-driven inlets
-  are flat to six significant figures (severed edges — a syringe pump as
-  physical do-operator). Verified on existing runs; no new simulation.
+  mode determines the causal graph**: pressure-driven inlets oscillate at
+  exactly the droplet frequency (an emergent, physics-delivered confounded
+  pair); velocity-driven inlets are flat to six significant figures
+  (severed edges — a syringe pump as physical do-operator). The *strength*
+  of the coupling is case-specific, not a chamber constant: a same-geometry
+  A/B gives r = +0.31, not the +0.998 first reported, because the coupling
+  is impulsive rather than sinusoidal. See the correction in that README.
 - [`results/mill3d_2026-07/`](results/mill3d_2026-07/) — the first 3D run:
-  the millable chip's junction in full 3D at the 2D-verified operating
-  point. Slug length matches 2D within +3% (length maps certified);
-  speed ×1.43 and frequency ×2.4 vs 2D — the measured corner-gutter
-  correction, now baked into the hardware first-light expectations.
+  the millable chip's junction in full 3D. **Partly superseded** — the run
+  was fed 79% more water than the 2D case it was compared against (q = 0.5
+  vs the 2D measured 0.28), so the ×1.43 speed and ×2.4 frequency
+  "corrections" are confounded and withdrawn. The +3% slug-length
+  agreement stands. The BC is fixed; a corrected 3D run has not been made.
 - [`results/mesh_convergence_2026-07/`](results/mesh_convergence_2026-07/) —
   9-point 5 µm vs 7.5 µm check on the serpentine case. Solver-level result
   is solid at every point (droplets form, same regime as 7.5 µm). After a

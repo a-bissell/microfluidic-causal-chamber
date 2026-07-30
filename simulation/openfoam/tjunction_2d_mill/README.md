@@ -25,12 +25,25 @@ CNC-milled PMMA (single 1/64" endmill, 0.4 mm deep), 3M 468MP bonding,
 | P_disp | ~1.8 kPa | ~18 cm water column |
 | Capillary entry threshold | ~150 Pa | (vs ~800 Pa at 150 µm — wide stable window) |
 
-Expected observables — updated after the 3D fidelity check
-([`../results/mill3d_2026-07/`](../results/mill3d_2026-07/)): **~620 µm
-slugs at ~27 Hz, ~40 mm/s**. This 2D case's slug length transfers to 3D
-within +3% (so the length response maps remain the bench-tuning chart),
-but corner-gutter flow makes the real beat 2.4× faster than 2D predicts —
-**film at ≥120 fps**, not 60.
+Expected observables: **~600 µm slugs (L/w 1.50) at ~11.4 Hz, ~28 mm/s** —
+measured, `../results/mill_2026-07/`.
+
+> An earlier revision of this section quoted ~620 µm at ~27 Hz and
+> ~40 mm/s "corrected after the 3D fidelity check". Those factors are
+> withdrawn: the 3D run was fed 79% more water than the 2D case it was
+> compared against (q = 0.5 vs the 2D measured 0.28), so most of the ×2.4
+> rhythm was extra water, not corner-gutter bypass. See the correction box
+> in [`../results/mill3d_2026-07/`](../results/mill3d_2026-07/). The +3%
+> slug-length agreement survives, so the length response maps remain the
+> bench-tuning chart. Corner-gutter bypass is real but currently
+> unquantified, and it acts to *raise* frequency — treat 11.4 Hz as a
+> lower bound and **film at ≥120 fps** for headroom.
+
+**This width is no longer the recommended design.** A 1/64" endmill is a
+high bar for replication. 600 µm and 800 µm reproduce this chamber to
+within 4% on every observable and are far more forgiving to machine — see
+[`../results/scaleup_2026-07/`](../results/scaleup_2026-07/) and generate
+the wider geometry with `python3 gen_blockmesh.py --w-main 600`.
 
 Both pressures sit inside the guide's balloon rig range (~2–4 kPa), but for
 causal-chamber use the actuators must be *measured and repeatable*:
