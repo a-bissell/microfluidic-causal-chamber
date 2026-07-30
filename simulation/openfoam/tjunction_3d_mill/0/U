@@ -32,8 +32,14 @@ boundaryField
 
     water_inlet
     {
+        // CORRECTED 2026-07-18. This was 0.01 m/s, which gives
+        // Q_disp/Q_cont = 0.5 -- nearly double the 2D reference case's
+        // MEASURED q = 0.28 (Q_oil 3.193, Q_water 0.895 uL/s at 3.9/1.8 kPa;
+        // see results/mill3d_2026-07). The first 3D run was therefore not at
+        // the 2D operating point, and its frequency comparison was confounded.
+        // 0.0056 m/s matches the 2D reference's water flux exactly.
         type            fixedValue;
-        value           uniform (0 -0.01 0);
+        value           uniform (0 -0.0056 0);
     }
 
     outlet

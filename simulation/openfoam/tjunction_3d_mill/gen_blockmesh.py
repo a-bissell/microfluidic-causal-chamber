@@ -38,17 +38,32 @@ _args = argparse.ArgumentParser()
 _args.add_argument("--dx", type=float, default=BASE_DX,
                     help="Cell size (um), uniform in x/y/z; counts scale from "
                          "the BASE_DX=20 tuning.")
-DX = _args.parse_args().dx
+_args.add_argument("--profile", choices=["square", "trapezoid"], default="square",
+                    help="Channel cross-section. 'square' = milled (default, "
+                         "half-depth domain with a mid-plane symmetry). "
+                         "'trapezoid' = laser-cut V-groove with a flat root: "
+                         "wide at the bonded lid, narrow at the root, FULL "
+                         "depth (a V-groove is not symmetric top-to-bottom, "
+                         "so the symmetry plane is unavailable).")
+_args.add_argument("--w-root", type=float, default=200.0,
+                    help="Trapezoid width (um) at the root; lid width is W_MAIN.")
+_parsed = _args.parse_args()
+DX = _parsed.dx
+PROFILE = _parsed.profile
+W_ROOT = _parsed.w_root
 
 x_j0, x_j1 = L_APPROACH, L_APPROACH + W_MAIN
 XS = [0.0, x_j0, x_j1, x_j1 + L_OUTLET]
 YS = [0.0, W_MAIN, W_MAIN + L_WAT_LEG]
-ZS = [0.0, DEPTH / 2.0]          # half-depth; symmetry at z = DEPTH/2
+# square: model half the depth and mirror at mid-plane. trapezoid: the
+# cross-section is asymmetric in z (wide at lid, narrow at root), so the
+# full depth must be meshed.
+ZS = [0.0, DEPTH / 2.0] if PROFILE == "square" else [0.0, DEPTH]
 
 _scale = BASE_DX / DX
 NX = [max(1, round(n * _scale)) for n in (100, 20, 200)]
-NY = [max(1, round(n * _scale)) for n in (20, 100)]
-NZ = max(1, round(10 * _scale))  # 10 cells across the half-depth at BASE_DX
+NY = [max(1, round(n * _scale)) for n in ((20, 100) if PROFILE == "square" else (16, 50))]
+NZ = max(1, round((10 if PROFILE == "square" else 20) * _scale))
 
 # fluid blocks as (x-interval, y-interval) index pairs
 BLOCKS = [(0, 0), (1, 0), (2, 0),   # main channel: approach, junction, outlet
@@ -65,17 +80,37 @@ def vid(x, y, z):
 hexes = []
 face_count: dict[tuple, list] = {}
 
+def chan_y(iy, z):
+    """y bounds of interval `iy` at height z.
+
+    Square: constant. Trapezoid: the main channel (iy=0) narrows linearly
+    from W_MAIN at the lid (z=DEPTH) to W_ROOT at the root (z=0), centred on
+    the channel axis; the water leg (iy=1) sits on top of it, so its lower
+    bound follows the main channel's upper wall (a slanted but conformal
+    shared face) while its outer bound stays flat.
+    """
+    if PROFILE == "square":
+        return YS[iy], YS[iy + 1]
+    w = W_ROOT + (W_MAIN - W_ROOT) * (z / DEPTH)
+    lo, hi = 0.5 * (W_MAIN - w), 0.5 * (W_MAIN + w)
+    return (lo, hi) if iy == 0 else (hi, YS[2])
+
+
 def add_block(ix, iy):
     x0, x1 = XS[ix], XS[ix + 1]
-    y0, y1 = YS[iy], YS[iy + 1]
-    v = [vid(x0, y0, ZS[0]), vid(x1, y0, ZS[0]), vid(x1, y1, ZS[0]), vid(x0, y1, ZS[0]),
-         vid(x0, y0, ZS[1]), vid(x1, y0, ZS[1]), vid(x1, y1, ZS[1]), vid(x0, y1, ZS[1])]
+    y0b, y1b = chan_y(iy, ZS[0])       # bounds at the lower z level
+    y0t, y1t = chan_y(iy, ZS[1])       # bounds at the upper z level
+    v = [vid(x0, y0b, ZS[0]), vid(x1, y0b, ZS[0]), vid(x1, y1b, ZS[0]), vid(x0, y1b, ZS[0]),
+         vid(x0, y0t, ZS[1]), vid(x1, y0t, ZS[1]), vid(x1, y1t, ZS[1]), vid(x0, y1t, ZS[1])]
     hexes.append((v, NX[ix], NY[iy], NZ))
     faces = [
         ('x', x0, (v[0], v[4], v[7], v[3])),
         ('x', x1, (v[1], v[2], v[6], v[5])),
-        ('y', y0, (v[0], v[1], v[5], v[4])),
-        ('y', y1, (v[3], v[7], v[6], v[2])),
+        # representative y for classification: only YS[-1] (the flat top of
+        # the water leg) needs to match exactly; the trapezoid's side walls
+        # are slanted and fall through to 'walls'.
+        ('y', y0b, (v[0], v[1], v[5], v[4])),
+        ('y', y1t, (v[3], v[7], v[6], v[2])),
         ('z', ZS[0], (v[0], v[3], v[2], v[1])),
         ('z', ZS[1], (v[4], v[5], v[6], v[7])),
     ]
@@ -96,7 +131,7 @@ for entries in face_count.values():
         patches['outlet'].append(quad)
     elif axis == 'y' and coord == YS[-1]:
         patches['water_inlet'].append(quad)
-    elif axis == 'z' and coord == ZS[1]:
+    elif axis == 'z' and coord == ZS[1] and PROFILE == "square":
         patches['symmetryPlane'].append(quad)
     else:
         patches['walls'].append(quad)
@@ -128,6 +163,8 @@ lines.append(");\n\nedges\n(\n);\n\nboundary\n(")
 TYPES = {'oil_inlet': 'patch', 'water_inlet': 'patch', 'outlet': 'patch',
          'symmetryPlane': 'symmetry', 'walls': 'wall'}
 for name, quads in patches.items():
+    if not quads:          # e.g. no symmetry plane in trapezoid mode
+        continue
     lines.append(f"    {name}\n    {{\n        type {TYPES[name]};\n        faces\n        (")
     for q in quads:
         lines.append(f"            ({' '.join(map(str, q))})")

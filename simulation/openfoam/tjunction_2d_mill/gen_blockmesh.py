@@ -30,25 +30,43 @@ Run:  python3 gen_blockmesh.py   (writes system/blockMeshDict)
 from pathlib import Path
 
 # ---- geometry (micrometres) -------------------------------------------------
-W_MAIN = 400.0          # channel width, one 1/64" endmill pass
-L_OIL_FEED = 46000.0    # oil inlet + serpentine (straightened)
+import argparse
+_ap = argparse.ArgumentParser()
+_ap.add_argument("--w-main", type=float, default=400.0,
+                 help="Main channel width AND depth (um). 400 = 1/64\" endmill "
+                      "(the original design); 600 or 800 are far more "
+                      "replicable (tool stiffness ~ d^4, so a 0.6 mm tool is "
+                      "5x and a 0.8 mm tool 16x stiffer than 1/64\"). All "
+                      "width-like dimensions scale with this; channel LENGTHS "
+                      "stay fixed, so drive pressures fall as 1/w^2 and the "
+                      "regime (Ca = mu*U/sigma) is unchanged.")
+W_MAIN = _ap.parse_args().w_main
+_k = W_MAIN / 400.0                      # scale factor vs the original design
+
+L_OIL_FEED = 46000.0    # oil inlet + serpentine (straightened) -- LENGTH, unscaled
 L_APPROACH = 2000.0     # feed exit -> junction
 L_OUTLET = 4000.0       # junction -> outlet
-W_RES_WAT = 80.0        # water resistor (tubing proxy)
+W_RES_WAT = 80.0 * _k   # water resistor (tubing proxy) -- a WIDTH, scales
 L_RES_WAT = 27000.0
 L_WAT_INLET = 2000.0    # water leg between resistor and junction
-DEPTH = 400.0           # milled depth (z; 2D empty direction)
+DEPTH = W_MAIN          # milled depth (z; 2D empty direction) -- square section
 
-DX = 20.0               # transverse cell size (20 cells across main channel)
+DX = W_MAIN / 20.0      # transverse cell size (20 cells across main channel)
 
 x_j0 = L_APPROACH                        # junction left edge
 x_j1 = x_j0 + W_MAIN                     # junction right edge
-XS = [-L_OIL_FEED, 0.0, x_j0, x_j0 + 160.0, x_j0 + 240.0, x_j1, x_j1 + L_OUTLET]
+# junction sub-strips straddle the water leg; they are fractions of W_MAIN
+XS = [-L_OIL_FEED, 0.0, x_j0, x_j0 + 0.4 * W_MAIN, x_j0 + 0.6 * W_MAIN, x_j1,
+      x_j1 + L_OUTLET]
 YS = [0.0, W_MAIN, W_MAIN + L_WAT_INLET, W_MAIN + L_WAT_INLET + L_RES_WAT]
 ZS = [0.0, DEPTH]
 
-NX = [100, 100, 8, 4, 8, 200]
-NY = [20, 40, 60]
+def _n(length):                          # uniform-resolution cell count
+    return max(1, round(length / DX))
+# the graded oil-feed block keeps its hand-tuned count; the rest follow DX
+NX = [100, _n(L_APPROACH), _n(0.4 * W_MAIN), _n(0.2 * W_MAIN), _n(0.4 * W_MAIN),
+      _n(L_OUTLET)]
+NY = [_n(W_MAIN), 40, 60]
 GX = [0.1, 1, 1, 1, 1, 1]       # oil feed refines toward the chip
 GY = [1, 6, 12]                 # water legs refine toward the junction
 
