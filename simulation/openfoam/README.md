@@ -341,6 +341,13 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
 
 - `droplet_verification.png` — filmstrip of the first verified droplet
   formation after the July 2026 BC fix (2D, corrected boundary conditions).
+- [`results/window600_2026-07/`](results/window600_2026-07/) — **operating
+  window at 600 µm: 25/25 cells drip at ±30% on both actuators** (12.3–22.9
+  cm oil × 5.9–11.0 cm water), so the window's edges are still outside the
+  sweep. L/w monotonic in every cell (1.15–2.21); the centre cell reproduces
+  the independently-run scale-up case to 7 significant figures. The worry
+  that a larger capillary-threshold fraction would narrow the window at
+  greater width is not borne out.
 - [`results/scaleup_2026-07/`](results/scaleup_2026-07/) — **the chamber
   scales**: 400 → 600 → 800 µm reproduce each other to within 4% on every
   observable (L/w 1.500/1.554/1.550, speed flat at ~28 mm/s, f ∝ 1/w,
