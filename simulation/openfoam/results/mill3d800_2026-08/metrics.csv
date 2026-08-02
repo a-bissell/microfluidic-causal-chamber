@@ -1,0 +1,3 @@
+case,dim,cells,endTime_s,exec_s,U_oil_m_s,U_water_m_s,q,Ca,n_droplets,L_um,L_over_w,slug_w_um,slug_w_over_w,period_ms,f_Hz,speed_mm_s,V_drop_nL,slug_over_superficial
+m800_2d,2D,4400,0.6,1974,0.019834,0.005791,0.2919,0.0317,3,1240.0,1.550,680,0.85,175.0,5.714,28.65,649,1.118
+m800_3d,3D,44000,0.6,6678,0.019834,0.005791,0.2919,0.0317,5,1080.0,1.350,760,0.95,110.0,9.091,33.50,408,1.307

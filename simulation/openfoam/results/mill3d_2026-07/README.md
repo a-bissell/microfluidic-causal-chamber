@@ -14,10 +14,17 @@
 > unaffected (length is weakly dependent on q), but **the ×1.43 speed and
 > ×2.4 frequency factors must not be quoted** as the 2D→3D correction.
 >
-> `tjunction_3d_mill/0/U` was corrected to 0.0056 m/s on 2026-07-18. The
-> re-run at the corrected operating point was started and then killed when
-> the project pivoted to the 600/800 µm scale-up, so **no corrected 3D
-> measurement exists yet.** Everything below is kept for provenance.
+> **SUPERSEDED BY [`../mill3d800_2026-08/`](../mill3d800_2026-08/)**, which
+> measures the correction at 800 µm against a matched 2D baseline built
+> by the same generator. Corrected values: slug length **×0.87** (not
+> +3% — the sign flips), speed **×1.17** (not ×1.43), droplet rate
+> **×1.59** (not ×2.4).
+>
+> That run also showed the actuation half of this run's confound was
+> benign: velocity- and pressure-driven 2D give identical L and f at a
+> matched operating point. The whole error here was the water flux.
+>
+> Everything below is kept for provenance.
 
 First 3D simulation of the project: `tjunction_3d_mill` (84k cells,
 half-depth symmetry domain), intended to sit at the velocity-driven
@@ -55,25 +62,22 @@ carries slugs faster (bypass flow adds drag on the caps).
 ## Consequences for hardware first light — WITHDRAWN
 
 The three bullets that stood here told the guide to expect ~27 Hz and
-~40 mm/s and to scale the 2D response maps by ×1.4 and ×2.4. Those came
-from the confounded comparison and are withdrawn. What survives:
+~40 mm/s and to scale the 2D response maps by ×1.4 and ×2.4. All withdrawn.
+**Use [`../mill3d800_2026-08/`](../mill3d800_2026-08/) instead** — it
+measures the correction against a matched baseline.
 
-- **Slug length ~620 µm (L/w 1.55) still stands.** Length is only weakly
-  dependent on q through Garstecki (L/w = 1 + αq), and 1.55 is what the
-  2D scale-up measured independently at 600 and 800 µm. The 2D response
-  maps' slug-length panel still transfers, and map-guided column tuning
-  (which keys off slug length) is unaffected.
-- **Corner-gutter bypass is real** — oil does route past the forming
-  droplet through the four corners a rounded interface cannot seal — but
-  its *magnitude* is unmeasured, because the measurement was taken against
-  the wrong baseline.
-- **Use the 2D numbers until a corrected 3D run exists**: ~11 Hz and
-  ~28 mm/s at 400 µm, ~7.4 Hz and ~28 mm/s at 600 µm, ~5.7 Hz and
-  ~28 mm/s at 800 µm (`../scaleup_2026-07/`). Treat these as *lower*
-  bounds on frequency, since gutter bypass shortens the cycle in the
-  direction the confounded run pointed, by an unknown factor.
-- **Camera ≥120 fps still holds**, but now for headroom rather than from
-  a 27 Hz measurement.
+An interim revision of this section claimed "slug length ~620 µm (L/w 1.55)
+still stands" and that the 2D length maps therefore transfer as-is. **That
+is also wrong**, and it is worth recording why, because the reasoning was
+seductive. L/w = 1.55 was indeed what this run measured *and* what 2D
+measures — but at different operating points. At q = 0.50 a 3D slug is
+L/w 1.55; at the reference q = 0.29 it is L/w 1.35, against 2D's 1.55. The
+agreement was a coincidence of the confound, not evidence of fidelity.
+
+The 2D slug-length maps do still transfer in *shape* — the correction is a
+uniform ×0.87, not a reshaping — so map-guided column tuning survives. But
+the values need that factor applied, which is exactly what the discarded
+version denied.
 
 ## Caveats
 

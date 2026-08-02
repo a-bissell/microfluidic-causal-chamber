@@ -27,17 +27,29 @@ import argparse
 from pathlib import Path
 
 # ---- geometry (micrometres) -------------------------------------------------
-W_MAIN = 400.0          # channel width (y) and full depth (z)
-DEPTH = 400.0           # full channel depth; domain models half of it
+# Channel LENGTHS are fixed while WIDTHS scale, matching tjunction_2d_mill:
+# holding Ca fixed means holding velocity fixed, so a wider chip runs the
+# same regime on lower drive pressures (see results/scaleup_2026-07).
 L_APPROACH = 2000.0     # oil inlet -> junction left edge
 L_OUTLET = 4000.0       # junction right edge -> outlet
 L_WAT_LEG = 2000.0      # water inlet leg above the junction
 
-BASE_DX = 20.0
+BASE_DX = 20.0          # tuned for the 400 um chip: w/20 across the channel
 _args = argparse.ArgumentParser()
-_args.add_argument("--dx", type=float, default=BASE_DX,
-                    help="Cell size (um), uniform in x/y/z; counts scale from "
-                         "the BASE_DX=20 tuning.")
+_args.add_argument("--w-main", type=float, default=400.0,
+                    help="Channel width (y) AND full depth (z), in um. 400 is "
+                         "the original 1/64\" design; 800 is the replicable "
+                         "one (endmill stiffness ~ d^4). --dx defaults to "
+                         "w/20 so relative resolution is width-independent.")
+_args.add_argument("--dx", type=float, default=None,
+                    help="Cell size (um), uniform in x/y/z. Default w/20, "
+                         "which reproduces the BASE_DX=20 tuning at 400 um.")
+_args.add_argument("--two-d", action="store_true",
+                    help="Emit the SAME domain as a single-cell-thick 2D mesh "
+                         "(frontAndBack empty, no symmetry plane). This is the "
+                         "controlled baseline for the 2D->3D fidelity "
+                         "comparison: one generator, one geometry, one flag, "
+                         "so dimensionality is the only thing that differs.")
 _args.add_argument("--profile", choices=["square", "trapezoid"], default="square",
                     help="Channel cross-section. 'square' = milled (default, "
                          "half-depth domain with a mid-plane symmetry). "
@@ -48,9 +60,12 @@ _args.add_argument("--profile", choices=["square", "trapezoid"], default="square
 _args.add_argument("--w-root", type=float, default=200.0,
                     help="Trapezoid width (um) at the root; lid width is W_MAIN.")
 _parsed = _args.parse_args()
-DX = _parsed.dx
+W_MAIN = _parsed.w_main          # channel width (y) and full depth (z)
+DEPTH = W_MAIN                   # square section; 3D models half the depth
+DX = _parsed.dx if _parsed.dx is not None else W_MAIN / 20.0
 PROFILE = _parsed.profile
-W_ROOT = _parsed.w_root
+TWO_D = _parsed.two_d
+W_ROOT = _parsed.w_root * (W_MAIN / 400.0)   # a WIDTH, so it scales
 
 x_j0, x_j1 = L_APPROACH, L_APPROACH + W_MAIN
 XS = [0.0, x_j0, x_j1, x_j1 + L_OUTLET]
@@ -58,12 +73,20 @@ YS = [0.0, W_MAIN, W_MAIN + L_WAT_LEG]
 # square: model half the depth and mirror at mid-plane. trapezoid: the
 # cross-section is asymmetric in z (wide at lid, narrow at root), so the
 # full depth must be meshed.
-ZS = [0.0, DEPTH / 2.0] if PROFILE == "square" else [0.0, DEPTH]
+# 3D square: model half the depth, mirror at the mid-plane. Trapezoid is
+# asymmetric in z so it needs full depth. 2D: full depth as the empty-
+# direction thickness, matching tjunction_2d_mill, so volumetric fluxes are
+# directly comparable to the pressure-driven 2D runs.
+ZS = [0.0, DEPTH / 2.0] if (PROFILE == "square" and not TWO_D) else [0.0, DEPTH]
 
-_scale = BASE_DX / DX
-NX = [max(1, round(n * _scale)) for n in (100, 20, 200)]
-NY = [max(1, round(n * _scale)) for n in ((20, 100) if PROFILE == "square" else (16, 50))]
-NZ = max(1, round((10 if PROFILE == "square" else 20) * _scale))
+# Counts follow from the actual geometry rather than from scaling the 400 um
+# tuning, so they stay correct when width and dx move together.
+def _n(length):
+    return max(1, round(length / DX))
+NX = [_n(L_APPROACH), _n(W_MAIN), _n(L_OUTLET)]
+NY = [_n(W_MAIN), _n(L_WAT_LEG)] if PROFILE == "square" else \
+     [max(1, round(0.8 * W_MAIN / DX)), _n(L_WAT_LEG)]
+NZ = 1 if TWO_D else _n(ZS[1])
 
 # fluid blocks as (x-interval, y-interval) index pairs
 BLOCKS = [(0, 0), (1, 0), (2, 0),   # main channel: approach, junction, outlet
@@ -120,7 +143,8 @@ def add_block(ix, iy):
 for ix, iy in BLOCKS:
     add_block(ix, iy)
 
-patches = {'oil_inlet': [], 'water_inlet': [], 'outlet': [], 'symmetryPlane': [], 'walls': []}
+patches = {'oil_inlet': [], 'water_inlet': [], 'outlet': [],
+           'symmetryPlane': [], 'frontAndBack': [], 'walls': []}
 for entries in face_count.values():
     if len(entries) != 1:
         continue
@@ -131,6 +155,8 @@ for entries in face_count.values():
         patches['outlet'].append(quad)
     elif axis == 'y' and coord == YS[-1]:
         patches['water_inlet'].append(quad)
+    elif axis == 'z' and TWO_D:
+        patches['frontAndBack'].append(quad)
     elif axis == 'z' and coord == ZS[1] and PROFILE == "square":
         patches['symmetryPlane'].append(quad)
     else:
@@ -161,7 +187,7 @@ for v, nx, ny, nz in hexes:
                  f"simpleGrading (1 1 1)")
 lines.append(");\n\nedges\n(\n);\n\nboundary\n(")
 TYPES = {'oil_inlet': 'patch', 'water_inlet': 'patch', 'outlet': 'patch',
-         'symmetryPlane': 'symmetry', 'walls': 'wall'}
+         'symmetryPlane': 'symmetry', 'frontAndBack': 'empty', 'walls': 'wall'}
 for name, quads in patches.items():
     if not quads:          # e.g. no symmetry plane in trapezoid mode
         continue
@@ -176,3 +202,42 @@ out.parent.mkdir(exist_ok=True)
 out.write_text("\n".join(lines) + "\n")
 ncells = sum(nx * ny * nz for _, nx, ny, nz in hexes)
 print(f"wrote {out}: {len(verts)} vertices, {len(hexes)} blocks, {ncells} cells")
+
+# ---- setFieldsDict ----------------------------------------------------------
+# Emitted here, not hand-maintained: the initial water column spans the water
+# leg only (y from W_MAIN up), and a box left at the 400 um values would seed
+# water INSIDE the main channel on any wider chip -- a silent, wrong initial
+# condition rather than an error.
+sf = Path(__file__).parent / "system" / "setFieldsDict"
+sf.write_text(f"""/*--------------------------------*- C++ -*----------------------------------*\\
+| Generated by gen_blockmesh.py — edit that script, not this file.            |
+\\*---------------------------------------------------------------------------*/
+FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      setFieldsDict;
+}}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+defaultFieldValues
+(
+    volScalarFieldValue alpha.water 0
+);
+
+regions
+(
+    // water leg above the junction, from the top of the main channel up
+    boxToCell
+    {{
+        box ({XS[1]*1e-6:.6g} {W_MAIN*1e-6:.6g} {ZS[0]*1e-6:.6g}) \
+({XS[2]*1e-6:.6g} {YS[2]*1e-6:.6g} {ZS[1]*1e-6:.6g});
+        fieldValues ( volScalarFieldValue alpha.water 1 );
+    }}
+);
+
+// ************************************************************************* //
+""")
+print(f"wrote {sf}: water leg x {XS[1]:.0f}-{XS[2]:.0f}, y {W_MAIN:.0f}-{YS[2]:.0f}, "
+      f"z {ZS[0]:.0f}-{ZS[1]:.0f} um")

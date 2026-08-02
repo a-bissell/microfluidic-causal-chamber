@@ -33,11 +33,13 @@ measured, `../results/mill_2026-07/`.
 > withdrawn: the 3D run was fed 79% more water than the 2D case it was
 > compared against (q = 0.5 vs the 2D measured 0.28), so most of the ×2.4
 > rhythm was extra water, not corner-gutter bypass. See the correction box
-> in [`../results/mill3d_2026-07/`](../results/mill3d_2026-07/). The +3%
-> slug-length agreement survives, so the length response maps remain the
-> bench-tuning chart. Corner-gutter bypass is real but currently
-> unquantified, and it acts to *raise* frequency — treat 11.4 Hz as a
-> lower bound and **film at ≥120 fps** for headroom.
+> in [`../results/mill3d_2026-07/`](../results/mill3d_2026-07/).
+>
+> Corner-gutter bypass has since been measured properly at 800 µm
+> ([`../results/mill3d800_2026-08/`](../results/mill3d800_2026-08/)):
+> slug length ×0.87, rate ×1.59, speed ×1.17. If those factors carry
+> across width — argued, not measured — this chip would run nearer
+> ~520 µm slugs at ~18 Hz. Treat 11.4 Hz as a lower bound.
 
 **This width is no longer the recommended design.** A 1/64" endmill is a
 high bar for replication. 600 µm and 800 µm reproduce this chamber to
