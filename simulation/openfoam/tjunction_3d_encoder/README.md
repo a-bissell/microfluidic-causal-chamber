@@ -364,7 +364,7 @@ core-vs-wall bias smaller than it.
 |---|---|
 | Mesh generation, 2D and 3D | ✅ `checkMesh` clean, all 5 inlet patches correct (200 faces each in 3D) |
 | Wall contact angle | ✅ corrected after a run jetted instead of dripping (pitfall above) |
-| **Droplet formation in this geometry** | ✅ **verified: L = 1240 µm, exactly the `scaleup_2026-07` 800 µm 2D value** |
+| **Droplet formation in this geometry** | ✅ **verified against `scaleup_2026-07` on all four observables — see table below** |
 | Solver choice | ✅ settled by measurement — `multiphaseInterFoam` does not drip, `interFoam` does |
 | `analyze_encoder.py` statistics | ✅ validated against synthetic data with known injected bias and noise |
 | Dye `scalarTransport` function objects | ⚠️ **unverified** — blocked locally by a packaging bug, not by anything in this case |
@@ -378,6 +378,31 @@ not be tested here because this OpenFOAM build aborts on *any* function
 object. That is the first thing to confirm on the rig, and `Allrun` warns if
 it fails.
 
-**Acceptance test for step 1**: droplets appear at ~1240 µm / ~175 ms (already
-confirmed for the physics), *and* the dye fields are present in the VTK output
-with a dye-closure error small enough to interpret a bias against.
+### Verification against the chamber
+
+A 0.40 s run of this exact mesh with `interFoam` (no dye transport — the
+droplet physics alone), against the verified 800 µm 2D numbers in
+[`results/scaleup_2026-07`](../results/scaleup_2026-07/):
+
+| Observable | `scaleup_2026-07` | this geometry | Δ |
+|---|---|---|---|
+| Slug length | 1240 µm | 1265, 1283 µm | +2.7% |
+| Period | 175 ms | 170 ms | −2.9% |
+| Droplet rate | 5.71 Hz | 5.88 Hz | +3.0% |
+| Advection speed | 28.46 mm/s | 30.7, 32.6 mm/s | +8% |
+
+All inside the ±10% band this project uses elsewhere, and well inside the
+3–19% spread the mesh-convergence study found. **The cross-merge does not
+disturb the junction**: adding three inlets and a merge node 1.2 mm upstream
+leaves the chamber's droplet behaviour intact, which is the premise the whole
+encoder rests on.
+
+Two caveats on those numbers. The period is a **single** interval between two
+droplets, not a statistic — the run was sized to answer "does it drip", not to
+average. And both droplets formed before the 207 ms transit, so they carry
+seeded water; that is irrelevant here (this checks formation, not composition)
+but it is why this run cannot double as a fidelity measurement.
+
+**Acceptance test for step 1** is therefore now half-satisfied: the physics is
+confirmed. What remains is that the dye fields are actually present in the VTK
+output, with a dye-closure error small enough to interpret a bias against.
