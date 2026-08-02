@@ -136,10 +136,40 @@ operating-window map in `../window600_2026-07/` keys off L/w and its
 
 ## Files
 
+- `droplet_3d_800um.png` / `.gif` — the interface itself, rendered as a 3D
+  surface over one full formation cycle: junction fills (0–22 ms), the body
+  extends into the outlet with a thinning neck (44–66 ms), pinch-off
+  (88 ms), new slug advancing (110 ms). Half-depth solution mirrored to the
+  full channel; the GIF is the same cycle at the native 5 ms write interval
+  (22 frames).
 - `cmp_2d3d_800um.png` — filmstrips (2D, 3D mid-plane, 3D near-wall) on a
   common physical scale, plus the correction bars against the withdrawn
   figures
 - `metrics.csv` — the numbers in the results table
+
+### Rendering notes
+
+`scripts/render_droplet_3d.py` does marching cubes on `alpha.water`. Four
+things it has to get right, each of which silently produces a wrong or
+unreadable picture rather than an error:
+
+- **Mirror the half-depth domain first**, or the droplet appears to sit on
+  a phantom floor at mid-depth.
+- **Convert cell data to point data before contouring.** interFoam writes
+  alpha per cell; contouring cell data gives a blocky voxel shell.
+- **Work on data objects, not output ports.** Chaining ports across
+  function scopes lets Python collect the intermediate filters while the
+  pipeline still references them, which segfaults VTK.
+- **Draw the channel as edges, not a translucent shell.** Correct
+  translucency needs depth peeling, which segfaults in this offscreen GL
+  context; without it the shell punches holes through the droplet.
+
+Also worth recording: the water leg's minimum cell-centre alpha is 0.75
+across x and 0.83 across z, so **the oil film on the leg walls is thinner
+than one cell and unresolved**. The interface that does appear in the leg is
+corner intrusion near the junction. The leg is cut to a stub in these
+renders for that reason — it is not a trustworthy region at this
+resolution.
 
 ## Reproduce
 
