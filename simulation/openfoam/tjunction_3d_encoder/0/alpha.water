@@ -6,7 +6,7 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
-    object      alpha.water2;
+    object      alpha.water;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -17,10 +17,16 @@ internalField   uniform 0;
 
 boundaryField
 {
-    dye1_inlet
+    oil_inlet
     {
         type            fixedValue;
         value           uniform 0;
+    }
+
+    dye1_inlet
+    {
+        type            fixedValue;
+        value           uniform 1;
     }
 
     dye2_inlet
@@ -32,13 +38,7 @@ boundaryField
     dye3_inlet
     {
         type            fixedValue;
-        value           uniform 0;
-    }
-
-    oil_inlet
-    {
-        type            fixedValue;
-        value           uniform 0;
+        value           uniform 1;
     }
 
     outlet
@@ -50,19 +50,11 @@ boundaryField
 
     walls
     {
-        // ESI name: alphaContactAngle (multiphase form).
-        // theta0 through the first phase of each pair; 160 deg
-        // = oil-wet, which is what lets the thread neck.
-        type            alphaContactAngle;
-        thetaProperties
-        (
-            ( water1 water2 ) 90 0 0 0
-            ( water1 water3 ) 90 0 0 0
-            ( water1 oil ) 160 0 0 0
-            ( water2 water3 ) 90 0 0 0
-            ( water2 oil ) 160 0 0 0
-            ( water3 oil ) 160 0 0 0
-        );
+        // ESI (v1912+) name: constantAlphaContactAngle
+        // Foundation (11+) name: contactAngle
+        // theta0 measured through the water phase; 160 deg = oil-wet.
+        type            constantAlphaContactAngle;
+        theta0          160;
         limit           gradient;
         value           uniform 0;
     }

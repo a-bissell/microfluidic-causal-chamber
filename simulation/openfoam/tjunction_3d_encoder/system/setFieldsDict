@@ -13,10 +13,10 @@ FoamFile
 
 defaultFieldValues
 (
-    volScalarFieldValue alpha.oil 1
-    volScalarFieldValue alpha.water1 0
-    volScalarFieldValue alpha.water2 0
-    volScalarFieldValue alpha.water3 0
+    volScalarFieldValue alpha.water 0
+    volScalarFieldValue dye1 0
+    volScalarFieldValue dye2 0
+    volScalarFieldValue dye3 0
 );
 
 regions
@@ -24,52 +24,52 @@ regions
     boxToCell
     {
         box (0.0004 0.002 0) (0.002 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.oil 0 );
+        fieldValues ( volScalarFieldValue alpha.water 1 );
     }
     boxToCell
     {
         box (0.0004 0.002 0) (0.002 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.water1 1 );
+        fieldValues ( volScalarFieldValue dye1 1 );
     }
     boxToCell
     {
         box (0.0028 0.002 0) (0.0044 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.oil 0 );
+        fieldValues ( volScalarFieldValue alpha.water 1 );
     }
     boxToCell
     {
         box (0.0028 0.002 0) (0.0044 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.water3 1 );
+        fieldValues ( volScalarFieldValue dye3 1 );
     }
     boxToCell
     {
         box (0.002 0.0028 0) (0.0028 0.0044 0.0004);
-        fieldValues ( volScalarFieldValue alpha.oil 0 );
+        fieldValues ( volScalarFieldValue alpha.water 1 );
     }
     boxToCell
     {
         box (0.002 0.0028 0) (0.0028 0.0044 0.0004);
-        fieldValues ( volScalarFieldValue alpha.water2 1 );
+        fieldValues ( volScalarFieldValue dye2 1 );
     }
     boxToCell
     {
         box (0.002 0.0008 0) (0.0028 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.oil 0 );
+        fieldValues ( volScalarFieldValue alpha.water 1 );
     }
     boxToCell
     {
         box (0.002 0.0008 0) (0.0028 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.water1 0.333333 );
+        fieldValues ( volScalarFieldValue dye1 0.333333 );
     }
     boxToCell
     {
         box (0.002 0.0008 0) (0.0028 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.water2 0.333333 );
+        fieldValues ( volScalarFieldValue dye2 0.333333 );
     }
     boxToCell
     {
         box (0.002 0.0008 0) (0.0028 0.0028 0.0004);
-        fieldValues ( volScalarFieldValue alpha.water3 0.333333 );
+        fieldValues ( volScalarFieldValue dye3 0.333333 );
     }
 );
 

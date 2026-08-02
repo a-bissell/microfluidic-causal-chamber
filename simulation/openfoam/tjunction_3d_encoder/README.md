@@ -100,36 +100,73 @@ This case uses velocity inlets, so `Q_i` are exogenous and crosstalk is **zero
 by construction**. What remains is sampling fidelity alone. Crosstalk is a
 separate, much cheaper experiment — see the bottom of this file.
 
-### Dyes are phases, not passive scalars
+### Dyes are passive scalars — after trying the better idea and measuring it fail
 
-The obvious implementation is `interFoam` plus three `scalarTransport`
-function objects. **That was tried first and rejected on physics.** A passive
-scalar gets no MULES compression, so it is neither conserved nor bounded, and
-it leaks across the oil–water interface because `phi` is the *mixture* flux.
+The physically nicer design is `multiphaseInterFoam` with four phases
+(`water1/2/3` + `oil`). Each `alpha.water_i` is then MULES-advected, conserved
+and bounded, so `Σ alpha.water_i` is an identity the solver *enforces* rather
+than a diagnostic to be checked, and composition carries no numerical leakage
+at all. That was built first, for exactly that reason.
 
-Uniform leakage would cancel in a composition ratio and be harmless.
-Differential leakage between dyes does not cancel — and differential leakage
-is exactly what you'd expect, since the three laminae sit at different
-distances from the interface. It is therefore **confounded with the physical
-effect being measured**, unrecoverably.
+**It does not form droplets.** Three runs settled it:
 
-`multiphaseInterFoam` with four phases (`water1/2/3` + `oil`) removes the
-confound at the source: every `alpha.water_i` is MULES-advected, conserved and
-bounded, so `Σ alpha.water_i` is an identity the solver enforces rather than a
-diagnostic to be checked. Cost is ~1.3–1.5× `interFoam` (the pressure solve
-dominates and is unchanged), which is cheap for removing a confound.
+| Geometry | Solver | Result |
+|---|---|---|
+| verified `tjunction_3d_mill` | `interFoam` | drips, L = 1400 µm |
+| **this case** | `interFoam` | **drips, L = 1240 µm** |
+| this case | `multiphaseInterFoam` | no pinch-off |
 
-The three water phases are byte-identical in properties and differ only in
-provenance — so the encoder **cannot perturb its own hydrodynamics**. Writing
-a different symbol changes nothing the momentum equation can see.
+The middle row is the important one: this exact mesh, these exact velocity BCs
+and this exact contact angle reproduce the verified 800 µm 2D slug length of
+**1240 µm** from [`results/scaleup_2026-07`](../results/scaleup_2026-07/) on
+the nose. The merge geometry is sound and the operating point is right — the
+solver is what differs. Under `multiphaseInterFoam` the thread stays attached
+past 2.5 mm and keeps growing at ~27 mm/s instead of necking.
+
+The surface-tension force does appear to sum correctly across the three
+water–oil pairs (at a ⅓-⅓-⅓ interface each pair contributes a third of the
+two-phase value, totalling the same `1/δ` — checked analytically, not
+assumed). More likely causes are the per-pair curvature estimate, built from
+an alpha field that only ever spans 0 to ⅓ and is correspondingly noisier, and
+interface compression acting between water phases that have no physical
+interface. Not chased further: **a working two-phase route is worth more than
+a conservation guarantee on a solver that will not drip.**
+
+**The cost of coming back.** A passive scalar gets no MULES compression, so it
+is neither conserved nor bounded, and it leaks across the interface because
+`phi` is the *mixture* flux. Uniform leakage cancels in a composition ratio
+and is harmless; differential leakage between laminae at different distances
+from the interface does not, and is confounded with the sampling bias this
+case measures. Two things bound it, and both must be used:
+
+1. `Σ dye_i == alpha.water` is an identity by construction but is *not*
+   numerically enforced, so its violation is a free per-droplet error measure.
+   `analyze_encoder.py` reports it and **refuses to interpret a bias smaller
+   than the leakage**.
+2. Numerical leakage scales with `dx`; a physical bias does not. **A bias seen
+   at one resolution is not a result** — see the `--dx 20` run in the plan.
+
+The three dye streams are the same fluid and differ only in provenance, so the
+encoder **cannot perturb its own hydrodynamics**: writing a different symbol
+changes nothing the momentum equation can see.
 
 ---
 
 ## Requirements
 
-**An ESI OpenFOAM build** (v1912+ / v2306). OpenFOAM.org has no
-`multiphaseInterFoam` equivalent under `foamRun`, so this case will not run
-there — unlike the other cases in this directory, which support both.
+`interFoam` (ESI) or `foamRun` + `solver incompressibleVoF` (OpenFOAM.org
+11+). `Allrun` detects which is present, so this case runs on both, like the
+rest of this directory.
+
+**One caveat on function objects.** The three dye scalars are
+`scalarTransport` function objects. These could **not** be verified locally:
+the Ubuntu 24.04 OpenFOAM package (`1912.200626-2build3`) aborts on *any*
+function object with `error in IOstream "sha1"` — a GCC-13 rebuild bug in
+`OSHA1stream`, unrelated to this case. The two-phase droplet physics beneath
+them **is** verified in this exact mesh (1240 µm slug, above). `Allrun` greps
+`log.solver` for function-object errors and warns, because a run whose FOs
+failed still completes and still makes droplets — it just silently carries no
+code, and you would not find out until the extractor errors out much later.
 
 ---
 
@@ -146,13 +183,8 @@ The two-phase cases here carry `theta0 = 160°` with a comment recording the
 same lesson — *"160 deg keeps the water thread off the walls so it can neck
 and pinch off (120 deg let water spread as a stable wall film)"*.
 
-`multiphaseInterFoam` needs a contact angle for **every phase pair**, so the
-generator emits the 4-phase generalisation: 160° for each water–oil pair, 90°
-for water–water (arbitrary — same fluid, no physical contact line — but the
-entry must exist or BC construction fails at run time, after meshing has
-already succeeded). Order matters: `theta0` is measured through the *first*
-phase of each pair, so `( oil water1 ) 160` would specify water-wet walls and
-reproduce the failure.
+The generator now emits `constantAlphaContactAngle` with `theta0 160`,
+byte-identical to those cases.
 
 If a run produces a long attached jet instead of droplets, check this first.
 
@@ -295,10 +327,12 @@ validates itself before it makes a claim:
    argument (it ignores simplex boundaries, inter-dye noise correlation, and
    decoding).
 
-The extractor also reports **phase-closure error**. `multiphaseInterFoam`
-enforces `Σ alpha = 1`; if the per-droplet closure exceeds ~1e-4, every
-composition in the run is suspect and the analysis says so rather than
-printing numbers that look fine.
+The extractor also reports **dye-closure error**: per droplet, the sum of the
+three dye integrals against the `alpha.water` integral. These are equal by
+construction but not numerically enforced, so the mismatch *is* the passive
+scalars' leakage. It is not decoration — it bounds how much of the measured
+bias could be numerical, and `analyze_encoder.py` refuses to interpret a
+core-vs-wall bias smaller than it.
 
 ---
 
@@ -328,50 +362,22 @@ printing numbers that look fine.
 
 | | |
 |---|---|
-| Mesh generation, 2D and 3D | ✅ verified, `checkMesh` clean, all 5 inlet patches correct |
-| 4-phase setup, `setFields` seeding | ✅ verified — solver reports phase-sum `1 1 1` |
-| `multiphaseInterFoam` runs the case | ✅ verified, OpenFOAM v1912 |
-| Wall contact angle | ✅ corrected after a 2D run jetted instead of dripping (see pitfall above) |
-| Droplet formation in 2D at these BCs | ❌ **not yet achieved — the gate on everything else.** See below. |
-| 3D run | ⏳ not yet run |
-| `extract_droplet_dye.py` / `analyze_encoder.py` on real droplets | ⏳ the extractor's droplet-finding and rejection logic has been exercised against a real VTK tree and behaved correctly (it correctly refused a slug still attached to the junction), but no run has yet produced a *detached* droplet for it to measure |
+| Mesh generation, 2D and 3D | ✅ `checkMesh` clean, all 5 inlet patches correct (200 faces each in 3D) |
+| Wall contact angle | ✅ corrected after a run jetted instead of dripping (pitfall above) |
+| **Droplet formation in this geometry** | ✅ **verified: L = 1240 µm, exactly the `scaleup_2026-07` 800 µm 2D value** |
+| Solver choice | ✅ settled by measurement — `multiphaseInterFoam` does not drip, `interFoam` does |
+| `analyze_encoder.py` statistics | ✅ validated against synthetic data with known injected bias and noise |
+| Dye `scalarTransport` function objects | ⚠️ **unverified** — blocked locally by a packaging bug, not by anything in this case |
+| Full 0.8 s 2D reference run end-to-end | ⏳ |
+| 3D run | ⏳ |
 
-**The acceptance test for step 1** is not just "droplets appear". The 2D case
-must reproduce the verified 800 µm 2D numbers from
-[`results/scaleup_2026-07`](../results/scaleup_2026-07/) — **slug length
-~1240 µm, period ~175 ms** — because that is simultaneously the check on the
-new solver (`multiphaseInterFoam` vs `interFoam`), the timestep, and the merge
-geometry.
+The droplet physics, the geometry, the operating point and the analysis
+statistics are all verified. The one unverified link is whether the three
+`scalarTransport` function objects load and transport correctly — which could
+not be tested here because this OpenFOAM build aborts on *any* function
+object. That is the first thing to confirm on the rig, and `Allrun` warns if
+it fails.
 
-### Open problem: no pinch-off yet
-
-As of this commit the 2D case **has not produced a detached droplet**, and
-this is the one thing that must be resolved before any 3D time is spent.
-
-Fixing the contact angle changed the behaviour substantially and in the right
-direction — the water went from a thin wall-riding jet (34% of channel height,
-running unbroken to 4.9 mm) to a compact body filling 45–65% of the channel
-and confined near the junction — but by t = 0.185 s the thread was still
-attached, growing at ~27 mm/s, and 2.5 mm long against an expected slug length
-of 1.24 mm.
-
-Three candidate causes, in the order worth testing:
-
-1. **OpenFOAM version.** Local verification here used the Ubuntu 24.04 package
-   (ESI **v1912**); this project's verified results were produced on **v2306**.
-   A control is running: the *unmodified, verified* `tjunction_3d_mill` case at
-   `--w-main 800 --two-d` with `interFoam`. If that does not drip either, the
-   discrepancy is the OpenFOAM build and not this case — in which case this
-   case may well be correct as committed, and the v2306 rig is the place to
-   find out.
-2. **`multiphaseInterFoam` vs `interFoam`.** The surface-tension force *should*
-   sum correctly across the three water–oil pairs — at a 1/3-1/3-1/3 interface
-   each pair contributes 1/3 of the two-phase value, totalling the same 1/δ —
-   and that was checked analytically, not just assumed. But it is untested in
-   this geometry. The isolating run is this case's mesh with `interFoam` and a
-   single water phase.
-3. **Merge geometry.** Least likely: with velocity-pinned inlets the flux
-   reaching the junction is identical to the reference by construction.
-
-Do not start the 3D run until step 1 drips and reproduces ~1240 µm / ~175 ms.
-The case, the scripts, and the analysis are ready; this is the remaining gate.
+**Acceptance test for step 1**: droplets appear at ~1240 µm / ~175 ms (already
+confirmed for the physics), *and* the dye fields are present in the VTK output
+with a dye-closure error small enough to interpret a bias against.

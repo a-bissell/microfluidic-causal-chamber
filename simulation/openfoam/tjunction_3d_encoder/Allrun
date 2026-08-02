@@ -22,8 +22,7 @@ for BASHRC in /opt/openfoam*/etc/bashrc \
     [ -f "$BASHRC" ] && { . "$BASHRC"; break; }
 done
 if [ -z "$WM_PROJECT_DIR" ]; then
-    echo "ERROR: OpenFOAM not found. This case needs an ESI build (it uses"
-    echo "multiphaseInterFoam, which OpenFOAM.org does not ship)."
+    echo "ERROR: OpenFOAM not found."
     exit 1
 fi
 # The Ubuntu package leaves FOAM_ETC unset, which makes setFields and the
@@ -32,10 +31,14 @@ fi
 export FOAM_ETC="${FOAM_ETC:-$WM_PROJECT_DIR/etc}"
 echo "OpenFOAM: $WM_PROJECT_DIR"
 
-if ! command -v multiphaseInterFoam >/dev/null 2>&1; then
-    echo "ERROR: multiphaseInterFoam not on PATH."
-    echo "This case represents each dye as a genuine phase so that composition"
-    echo "is MULES-conserved; interFoam cannot substitute. See README.md."
+# ESI ships interFoam; OpenFOAM.org 11+ replaced it with foamRun + the
+# `solver` entry in controlDict. Both are supported.
+if command -v interFoam >/dev/null 2>&1; then
+    SOLVER=interFoam
+elif command -v foamRun >/dev/null 2>&1; then
+    SOLVER=foamRun
+else
+    echo "ERROR: neither interFoam nor foamRun on PATH."
     exit 1
 fi
 
@@ -71,13 +74,13 @@ if [ "$NP" -gt 1 ]; then
         echo "  system/decomposeParDict already defaults to 'simple' for that"
         echo "  reason, so check numberOfSubdomains matches n and \$NP."
         exit 1; }
-    echo "multiphaseInterFoam on $NP ranks..."
-    mpirun -np "$NP" multiphaseInterFoam -parallel > log.solver 2>&1 || {
+    echo "$SOLVER on $NP ranks..."
+    mpirun -np "$NP" $SOLVER -parallel > log.solver 2>&1 || {
         echo "FAILED: see log.solver"; exit 1; }
     reconstructPar > log.reconstructPar 2>&1
 else
-    echo "multiphaseInterFoam (serial)..."
-    multiphaseInterFoam > log.solver 2>&1 || { echo "FAILED: see log.solver"; exit 1; }
+    echo "$SOLVER (serial)..."
+    $SOLVER > log.solver 2>&1 || { echo "FAILED: see log.solver"; exit 1; }
 fi
 
 # The extractor reads legacy .vtk; ESI foamToVTK writes a .vtm/.vtu tree unless
@@ -88,9 +91,17 @@ foamToVTK -legacy > log.foamToVTK 2>&1 || foamToVTK > log.foamToVTK 2>&1
 
 # A run that never formed droplets, or whose phases stopped summing to 1, is a
 # failure worth surfacing now rather than at the analysis step.
+# The dye fields come from function objects. If those failed to load, the run
+# still completes and still makes droplets -- it just silently carries no code,
+# and that is not discovered until the extractor errors out much later.
 echo ""
-echo "Phase-sum check (must stay 1 1 1):"
-grep "Phase-sum volume fraction" log.solver | tail -1
+if grep -qiE "sha1|Unknown function|cannot (find|load)" log.solver; then
+    echo "*** WARNING: function-object errors in log.solver."
+    echo "    The dye scalars may not have been transported. Check before"
+    echo "    spending analysis time on this run."
+else
+    echo "Function objects loaded; dye fields should be present in the output."
+fi
 
 echo ""
 echo "Done. Next:"

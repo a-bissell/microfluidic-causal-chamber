@@ -1,7 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | Encoder twin: 3-dye cross-merge -> T-junction.                              |
 | Generated companion files come from gen_blockmesh.py; this one is hand-     |
-| maintained. Requires an ESI build (multiphaseInterFoam) -- see README.md.   |
+| maintained. ESI runs interFoam directly; OpenFOAM.org 11+ runs foamRun and  |
+| reads `solver`. Allrun picks whichever is present, so both entries stay.    |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
@@ -12,10 +13,9 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     multiphaseInterFoam;
+application     foamRun;
 
-// (OpenFOAM.org has no multiphaseInterFoam equivalent under foamRun;
-//  this case requires an ESI build. See README.md "Requirements".)
+solver          incompressibleVoF;
 
 startFrom       startTime;
 
@@ -75,17 +75,67 @@ maxAlphaCo      0.5;
 // interface will corrupt.
 maxDeltaT       1e-5;
 
-// No function objects. Per-inlet volumetric flux comes from the existing
-// scripts/extract_inlet_flux.py (Newell method on the VTK output) -- the same
-// code path the cyclicity result was measured with, rather than a second and
-// unvalidated route to the same number:
+// ---------------------------------------------------------------------------
+// The three dye scalars.
 //
+// dye_i is the volume fraction of water-of-type-i, so by construction
+//     sum_i dye_i == alpha.water   everywhere, always.
+//
+// scalarTransport advects these on interFoam's mixture flux phi WITHOUT the
+// MULES compression alpha.water gets, so that identity is not numerically
+// enforced -- which makes its violation a free, pointwise measure of this
+// method's error. extract_droplet_dye.py integrates it per droplet and
+// analyze_encoder.py reports it; if it is not small, the compositions are not
+// trustworthy. See gen_blockmesh.py for why the conservative alternative
+// (multiphaseInterFoam, dyes as real phases) was tried and abandoned.
+//
+// D = 0: pure advection. Real dye diffusivity ~5e-10 m2/s gives a diffusion
+// length sqrt(2Dt) ~ 14 um over the 207 ms transit -- negligible against an
+// 800 um channel and far below the scheme's numerical diffusion, so setting
+// the physical value would be false precision.
+//
+// NOTE these function objects could NOT be verified locally: the Ubuntu 24.04
+// OpenFOAM package (1912.200626-2build3) aborts on ANY function object with
+// 'error in IOstream "sha1"', a GCC-13 rebuild bug in OSHA1stream unrelated to
+// this case. The two-phase droplet physics beneath them IS verified in this
+// exact mesh. Check the phase-closure diagnostic on the first real run.
+// ---------------------------------------------------------------------------
+functions
+{
+    dye1Transport
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           dye1;
+        schemesField    dye;        // all three share div(phi,dye)
+        D               0;
+        writeControl    writeTime;
+    }
+
+    dye2Transport
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           dye2;
+        schemesField    dye;
+        D               0;
+        writeControl    writeTime;
+    }
+
+    dye3Transport
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           dye3;
+        schemesField    dye;
+        D               0;
+        writeControl    writeTime;
+    }
+}
+
+// Per-inlet volumetric flux comes from scripts/extract_inlet_flux.py (Newell
+// method on the VTK output) -- the code path the cyclicity result used:
 //   python3 ../scripts/extract_inlet_flux.py <case> \
 //       --patches oil_inlet dye1_inlet dye2_inlet dye3_inlet
-//
-// That gives the composition DELIVERED to the leg, independent of the phase
-// fields. Comparing it against the composition MEASURED in the droplet
-// separates a delivery error from a sampling error -- different failures with
-// different fixes, which the droplet fields alone cannot tell apart.
 
 // ************************************************************************* //

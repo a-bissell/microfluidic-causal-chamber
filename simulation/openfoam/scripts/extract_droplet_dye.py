@@ -68,7 +68,8 @@ except ImportError:
     sys.exit("VTK not found. pip install vtk")
 
 
-PHASES = ["water1", "water2", "water3"]
+DYES = ["dye1", "dye2", "dye3"]
+WATER = "alpha.water"
 
 
 def load_geometry(case_dir):
@@ -132,21 +133,22 @@ def read_fields(vtk_file):
     cd = data.GetCellData()
     available = {cd.GetArrayName(i) for i in range(cd.GetNumberOfArrays())}
     alphas = {}
-    for ph in PHASES:
-        name = f"alpha.{ph}"
+    for name in DYES:
         if name not in available:
             sys.exit(f"{name} missing from {vtk_file.name}. Found: "
-                     f"{sorted(available)}. This case must be run with "
-                     f"multiphaseInterFoam and the 4-phase transportProperties "
-                     f"that gen_blockmesh.py writes.")
-        alphas[ph] = numpy_support.vtk_to_numpy(cd.GetArray(name))
+                     f"{sorted(available)}. The dye fields come from the three "
+                     f"scalarTransport function objects in system/controlDict; "
+                     f"if only alpha.water is present the solver ran without "
+                     f"them (check log.solver for function-object errors).")
+        alphas[name] = numpy_support.vtk_to_numpy(cd.GetArray(name))
 
-    oil = (numpy_support.vtk_to_numpy(cd.GetArray("alpha.oil"))
-           if "alpha.oil" in available else None)
-    return coords, vols, alphas, oil
+    if WATER not in available:
+        sys.exit(f"{WATER} missing from {vtk_file.name}.")
+    water = numpy_support.vtk_to_numpy(cd.GetArray(WATER))
+    return coords, vols, alphas, water
 
 
-def detect(coords, vols, alphas, oil, geom, threshold=0.5, halo_cells=3):
+def detect(coords, vols, alphas, water, geom, threshold=0.5, halo_cells=3):
     """Locate detached droplets in the outlet and integrate each phase.
 
     Droplets are separated by gaps along x -- valid here because this is slug
@@ -158,8 +160,6 @@ def detect(coords, vols, alphas, oil, geom, threshold=0.5, halo_cells=3):
     dx = geom["dx_um"] * 1e-6
     x_lo = geom["x_outlet_um"][0] * 1e-6      # junction downstream edge
     x_hi = geom["x_outlet_um"][1] * 1e-6      # domain outlet
-
-    water = sum(alphas[ph] for ph in PHASES)
 
     # Restrict to the outlet channel: the water leg and merge node upstream
     # are full of water that is not a droplet.
@@ -191,7 +191,7 @@ def detect(coords, vols, alphas, oil, geom, threshold=0.5, halo_cells=3):
         win = in_outlet & (coords[:, 0] >= x0 - halo_cells * dx) \
                         & (coords[:, 0] <= x1 + halo_cells * dx)
 
-        v_i = np.array([float(np.sum(alphas[ph][win] * vols[win])) for ph in PHASES])
+        v_i = np.array([float(np.sum(alphas[dye][win] * vols[win])) for dye in DYES])
         v_tot = float(v_i.sum())
         if v_tot <= 0:
             continue
@@ -206,17 +206,21 @@ def detect(coords, vols, alphas, oil, geom, threshold=0.5, halo_cells=3):
             "V_nL": v_tot * 1e12,
             "n_cells": int(win.sum()),
         }
-        for k, ph in enumerate(PHASES):
+        for k in range(3):
             rec[f"V{k+1}_nL"] = v_i[k] * 1e12
             rec[f"c{k+1}"] = v_i[k] / v_tot
 
-        # Conservation check. multiphaseInterFoam enforces sum(alpha) == 1 over
-        # ALL phases, so within a droplet window water+oil must close to 1.
-        # This is expected to be ~0 and is recorded rather than assumed: if it
-        # ever is not, every composition in the run is suspect.
-        if oil is not None:
-            closure = np.sum((water[win] + oil[win]) * vols[win]) / np.sum(vols[win])
-            rec["phase_closure_err"] = float(abs(closure - 1.0))
+        # THE ERROR BAR. sum_i dye_i == alpha.water by construction, but
+        # scalarTransport gives the dyes no MULES compression, so the identity
+        # is not numerically enforced -- the dyes leak across the oil-water
+        # interface on the mixture flux. The relative mismatch between the
+        # dye-summed water volume and the alpha-integrated water volume is
+        # therefore a direct measure of how much this method has lost, and it
+        # bounds how much of any composition bias could be numerical rather
+        # than physical. Recorded per droplet, never assumed small.
+        v_water = float(np.sum(water[win] * vols[win]))
+        rec["dye_closure_err"] = (abs(v_tot - v_water) / v_water
+                                  if v_water > 0 else np.nan)
         droplets.append(rec)
 
     return droplets, rejected
@@ -271,8 +275,8 @@ def main():
 
     rows, total_rejected = [], 0
     for idx, (n, f) in enumerate(files):
-        coords, vols, alphas, oil = read_fields(f)
-        drops, rejected = detect(coords, vols, alphas, oil, geom,
+        coords, vols, alphas, water = read_fields(f)
+        drops, rejected = detect(coords, vols, alphas, water, geom,
                                  args.threshold, args.halo_cells)
         total_rejected += rejected
         t = times[idx] if idx < len(times) else np.nan
@@ -291,9 +295,10 @@ def main():
     print(f"\n{len(df)} droplet observations across {df.time_s.nunique()} frames "
           f"({total_rejected} rejected as truncated at a window edge)")
     print(f"written: {out}")
-    if "phase_closure_err" in df:
-        print(f"max phase-closure error: {df.phase_closure_err.max():.3e} "
-              f"(should be ~1e-6 or below)")
+    if "dye_closure_err" in df:
+        print(f"max dye-closure error: {df.dye_closure_err.max():.2%} "
+              f"(sum of dyes vs alpha.water per droplet; this bounds how much\n"
+              f" of any composition bias could be numerical)")
     print("\nNOT yet filtered for startup transient -- run analyze_encoder.py.")
 
 

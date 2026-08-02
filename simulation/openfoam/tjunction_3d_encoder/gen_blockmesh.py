@@ -323,43 +323,54 @@ u_lines.append("    frontAndBack\n    {\n        type            empty;\n    }\n
 u_lines.append("}\n\n// ***************************** //")
 (HERE / "0" / "U").write_text("\n".join(u_lines) + "\n")
 
-# ---- phase fractions and p_rgh ---------------------------------------------
-# THE DYES ARE PHASES, NOT PASSIVE SCALARS.
+# ---- alpha.water, p_rgh, and the three dye scalars -------------------------
+# WHY PASSIVE SCALARS AND NOT PHASES -- a negative result, recorded so it is
+# not repeated.
 #
-# The obvious implementation is interFoam plus three scalarTransport function
-# objects riding the mixture flux. That was tried first and rejected on
-# physics, not convenience: a passive scalar gets no MULES compression, so it
-# is neither conserved nor bounded, and it leaks across the oil-water
-# interface because phi is the MIXTURE flux and differs from the water
-# velocity wherever 0 < alpha < 1.
+# The physically nicer design is multiphaseInterFoam with four phases
+# (water1/2/3 + oil). Every alpha.water_i is then MULES-advected, conserved
+# and bounded, so sum_i alpha.water_i == total water is an identity the solver
+# enforces rather than a diagnostic to be checked, and composition carries no
+# numerical leakage at all. That was built first, for exactly that reason.
 #
-# That leak is not a harmless inaccuracy here. The measurement is a RATIO of
-# per-droplet integrals. Uniform leakage cancels in a ratio and would be fine.
-# Differential leakage between dyes does not cancel -- and differential
-# leakage is exactly what you would expect, because the three laminae sit at
-# different distances from the interface. It is therefore confounded with the
-# physical sampling bias this case exists to measure, and no amount of care in
-# the analysis can separate them after the fact.
+# IT DOES NOT FORM DROPLETS. Three runs settled it:
 #
-# Making each dye a genuine phase removes the confound at the source.
-# multiphaseInterFoam advects every alpha.water_i with MULES: conserved and
-# bounded in [0,1] by construction. Then
-#     alpha.water1 + alpha.water2 + alpha.water3 == total water fraction
-# is an identity the solver enforces, not a diagnostic to be checked, and any
-# composition bias that survives is physical.
+#   verified tjunction_3d_mill geometry + interFoam        -> drips, L = 1400 um
+#   THIS geometry               + interFoam                -> drips, L = 1240 um
+#   THIS geometry               + multiphaseInterFoam      -> no pinch-off
 #
-# Cost: three alpha equations instead of one. The pressure solve dominates and
-# is unchanged, so expect ~1.3-1.5x interFoam, not 3x.
+# The middle row is the important one: this exact mesh, these exact velocity
+# BCs and this exact contact angle reproduce the verified 800 um 2D slug
+# length of 1240 um from results/scaleup_2026-07 on the nose. So the merge
+# geometry is sound and the operating point is right; the solver is what
+# differs. With multiphaseInterFoam the thread stays attached past 2.5 mm and
+# keeps growing at ~27 mm/s instead of necking.
 #
-# One honesty note: MULES applies interface compression between the water
-# phases too, which is unphysical for three miscible streams. It does not
-# affect the measurement (conservation holds regardless, and the measurement
-# integrates over the whole droplet), and it happens to be close to reality
-# anyway -- real dye diffusivity ~5e-10 m2/s gives ~14 um of spreading over
-# the 207 ms transit, against an 800 um channel. Set sigma between water
-# phases to zero so no spurious surface-tension FORCE is generated; only the
-# compression term remains.
-PHASES = ["water1", "water2", "water3", "oil"]
+# The surface-tension force does appear to sum correctly across the three
+# water-oil pairs -- at a 1/3-1/3-1/3 interface each pair contributes a third
+# of the two-phase value, totalling the same 1/delta -- so the cause is more
+# likely the per-pair curvature estimate, which is built from an alpha field
+# that only ever spans 0 to 1/3 and is correspondingly noisier, and/or the
+# interface compression acting between water phases that have no physical
+# interface. Not chased further: the two-phase route works and is verified in
+# this geometry, which is worth more than the conservation guarantee.
+#
+# THE COST OF COMING BACK. A passive scalar gets no MULES compression, so it
+# is neither conserved nor bounded, and it leaks across the interface because
+# phi is the MIXTURE flux and differs from the water velocity where
+# 0 < alpha < 1. Uniform leakage cancels in a composition RATIO and is
+# harmless; differential leakage between laminae at different distances from
+# the interface does not cancel, and is confounded with the physical sampling
+# bias this case measures.
+#
+# Two things bound that confound, and both must be used:
+#   1. sum_i dye_i == alpha.water is an identity by construction but is NOT
+#      numerically enforced here, so its violation is a free pointwise error
+#      measure. extract_droplet_dye.py integrates it per droplet.
+#   2. Numerical leakage scales with dx; a physical sampling bias does not.
+#      A bias seen at one resolution is not a result -- see the --dx 20
+#      confirmation run in README.md.
+PHASES = ["water", "oil"]
 
 
 def bc_block(entries, two_d):
@@ -401,47 +412,50 @@ INOUT = ("        type            inletOutlet;\n"
 # the value is arbitrary -- but the entry must exist or the BC construction
 # fails at run time, after meshing has already succeeded.
 THETA_WATER_OIL = 160.0
-THETA_WATER_WATER = 90.0
 
+# Strongly oil-wet walls, byte-identical to tjunction_2d_mill and
+# tjunction_3d_mill, whose comment records what happens otherwise: "160 deg
+# keeps the water thread off the walls so it can neck and pinch off (120 deg
+# let water spread as a stable wall film)".
+#
+# Learned here the expensive way. The first version of this generator emitted
+# zeroGradient, which is NEUTRAL wetting (90 deg). The case meshed cleanly,
+# ran cleanly, and produced no droplets at all: water entered at the top of
+# the channel and rode the wall as a jet out to 2.9 mm without ever blocking
+# the junction, so the oil never had to squeeze it. Nothing looked wrong; the
+# answer simply never appeared. Do not "simplify" this back to zeroGradient.
+CONTACT_ANGLE = (
+    "        // ESI (v1912+) name: constantAlphaContactAngle\n"
+    "        // Foundation (11+) name: contactAngle\n"
+    "        // theta0 measured through the water phase; 160 deg = oil-wet.\n"
+    "        type            constantAlphaContactAngle;\n"
+    f"        theta0          {THETA_WATER_OIL:g};\n"
+    "        limit           gradient;\n"
+    "        value           uniform 0;\n")
 
-def contact_angle_bc():
-    """alphaContactAngle wall BC covering all six phase pairs.
+alpha = [HDR.format(cls="volScalarField", obj="alpha.water"),
+         "\ndimensions      [0 0 0 0 0 0 0];\n\ninternalField   uniform 0;\n",
+         bc_block([("oil_inlet", FIXED.format(v=0)),
+                   ("dye1_inlet", FIXED.format(v=1)),
+                   ("dye2_inlet", FIXED.format(v=1)),
+                   ("dye3_inlet", FIXED.format(v=1)),
+                   ("outlet", INOUT.format(v=0)),
+                   ("walls", CONTACT_ANGLE)], TWO_D)]
+(HERE / "0" / "alpha.water").write_text("\n".join(alpha) + "\n")
 
-    Order matters: theta0 is measured through the FIRST phase of each pair, so
-    water must lead in every water-oil pair for 160 deg to mean 'oil-wet'.
-    Writing (oil water1) 160 would specify the exact opposite -- water-wet
-    walls -- and would reproduce the wall-film failure described above.
-    """
-    rows = []
-    for i, a_ in enumerate(PHASES):
-        for b_ in PHASES[i + 1:]:
-            theta = THETA_WATER_OIL if b_ == "oil" else THETA_WATER_WATER
-            rows.append(f"            ( {a_} {b_} ) {theta:g} 0 0 0")
-    return ("        // ESI name: alphaContactAngle (multiphase form).\n"
-            "        // theta0 through the first phase of each pair; 160 deg\n"
-            "        // = oil-wet, which is what lets the thread neck.\n"
-            "        type            alphaContactAngle;\n"
-            "        thetaProperties\n        (\n"
-            + "\n".join(rows) +
-            "\n        );\n        limit           gradient;\n"
-            "        value           uniform 0;\n")
-
-
-# Which inlet carries which phase at fraction 1.
-INLET_PHASE = {"dye1_inlet": "water1", "dye2_inlet": "water2",
-               "dye3_inlet": "water3", "oil_inlet": "oil"}
-
-for ph in PHASES:
-    entries = []
-    for patch, patch_phase in sorted(INLET_PHASE.items()):
-        entries.append((patch, FIXED.format(v=1 if patch_phase == ph else 0)))
-    entries.append(("outlet", INOUT.format(v=1 if ph == "oil" else 0)))
-    entries.append(("walls", contact_angle_bc()))
-    fld = [HDR.format(cls="volScalarField", obj=f"alpha.{ph}"),
-           "\ndimensions      [0 0 0 0 0 0 0];\n"
-           f"\ninternalField   uniform {1 if ph == 'oil' else 0};\n",
+# The three dye scalars. dye_i is the volume fraction of water-of-type-i, so
+# sum_i dye_i == alpha.water by construction -- see the block above for why
+# that identity is a diagnostic here rather than a guarantee.
+DYE_PATCH_IDX = {"dye1_inlet": 0, "dye2_inlet": 1, "dye3_inlet": 2}
+for i in range(3):
+    entries = [("oil_inlet", FIXED.format(v=0))]
+    for patch, idx in sorted(DYE_PATCH_IDX.items()):
+        entries.append((patch, FIXED.format(v=1 if idx == i else 0)))
+    entries += [("outlet", INOUT.format(v=0)), ("walls", ZG)]
+    fld = [HDR.format(cls="volScalarField", obj=f"dye{i+1}"),
+           "\ndimensions      [0 0 0 0 0 0 0];\n\ninternalField   uniform 0;\n",
            bc_block(entries, TWO_D)]
-    (HERE / "0" / f"alpha.{ph}").write_text("\n".join(fld) + "\n")
+    (HERE / "0" / f"dye{i+1}").write_text("\n".join(fld) + "\n")
 
 prgh = [HDR.format(cls="volScalarField", obj="p_rgh"),
         "\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 0;\n",
@@ -452,34 +466,11 @@ prgh = [HDR.format(cls="volScalarField", obj="p_rgh"),
                   ("walls", ZG)], TWO_D)]
 (HERE / "0" / "p_rgh").write_text("\n".join(prgh) + "\n")
 
-# ---- transportProperties (4 phases) ----------------------------------------
-# The three water phases are byte-identical in properties. They differ only in
-# which inlet they enter from, which is the whole point: the code is carried by
-# provenance, not by any property difference that could feed back on the flow.
-# That also means the encoder cannot perturb its own hydrodynamics -- writing a
-# different symbol changes nothing the momentum equation can see.
-tp = [HDR.format(cls="dictionary", obj="transportProperties"), "\nphases\n("]
-for ph in PHASES:
-    is_oil = ph == "oil"
-    tp.append(f"""    {ph}
-    {{
-        transportModel  Newtonian;
-        nu              {5e-05 if is_oil else 1e-06};
-        rho             {960 if is_oil else 1000};
-    }}
-""")
-tp.append(");\n")
-tp.append("// Water-oil interfacial tension is the real one (50 cSt silicone oil,\n"
-          "// 2% Span 80). Water-water pairs are set to zero: they are the same\n"
-          "// fluid, and any nonzero value would invent a force across the\n"
-          "// laminae and bend the very interface being measured.\nsigmas\n(")
-for i, a_ in enumerate(PHASES):
-    for b_ in PHASES[i + 1:]:
-        s = 0.03 if "oil" in (a_, b_) else 0
-        tp.append(f"    ({a_} {b_}) {s}")
-tp.append(");\n\n// ***************************** //")
-(HERE / "constant").mkdir(exist_ok=True)
-(HERE / "constant" / "transportProperties").write_text("\n".join(tp) + "\n")
+# transportProperties is NOT generated -- it is the two-phase file shared with
+# tjunction_2d_mill and tjunction_3d_mill (50 cSt silicone oil + 2% Span 80
+# against DI water, sigma = 0.03). Generating a copy here would let the two
+# drift apart silently, and the whole point of this case is that its junction
+# physics is the same chamber as theirs.
 
 # ---- setFieldsDict ----------------------------------------------------------
 # Prime the whole water side (three dye legs + merge node + shared leg) so the
@@ -504,21 +495,17 @@ DYE_LEGS = [((XS[1], XS[2], YS[2], YS[3]), 1),    # dye1 leg, from the left
             ((XS[2], XS[3], YS[3], YS[4]), 2)]    # dye2 leg, axial
 SHARED = (XS[2], XS[3], YS[1], YS[3])             # merge node + shared leg
 
-# Every water region must also clear alpha.oil, or the fractions will not sum
-# to 1 and multiphaseInterFoam will renormalise them silently -- which would
-# corrupt the commanded composition without raising anything.
 for (x0, x1, y0, y1), dye in DYE_LEGS:
-    regions.append(box(x0, x1, y0, y1, "alpha.oil", 0))
-    regions.append(box(x0, x1, y0, y1, f"alpha.water{dye}", 1))
-regions.append(box(*SHARED, "alpha.oil", 0))
+    regions.append(box(x0, x1, y0, y1, "alpha.water", 1))
+    regions.append(box(x0, x1, y0, y1, f"dye{dye}", 1))
+regions.append(box(*SHARED, "alpha.water", 1))
 for i, ci in enumerate(C):
-    regions.append(box(*SHARED, f"alpha.water{i+1}", f"{ci:.6f}"))
+    regions.append(box(*SHARED, f"dye{i+1}", f"{ci:.6f}"))
 
 sf = [HDR.format(cls="dictionary", obj="setFieldsDict"),
-      "\ndefaultFieldValues\n(\n    volScalarFieldValue alpha.oil 1\n"
-      "    volScalarFieldValue alpha.water1 0\n"
-      "    volScalarFieldValue alpha.water2 0\n"
-      "    volScalarFieldValue alpha.water3 0\n);\n\nregions\n(",
+      "\ndefaultFieldValues\n(\n    volScalarFieldValue alpha.water 0\n"
+      "    volScalarFieldValue dye1 0\n    volScalarFieldValue dye2 0\n"
+      "    volScalarFieldValue dye3 0\n);\n\nregions\n(",
       "\n".join(regions), ");\n\n// ***************************** //"]
 (HERE / "system" / "setFieldsDict").write_text("\n".join(sf) + "\n")
 

@@ -144,8 +144,8 @@ def per_droplet(df, geom, settle_factor=1.0):
         for k in (1, 2, 3):
             rec[f"c{k}"] = d[f"c{k}"].mean()
             rec[f"c{k}_within_sd"] = d[f"c{k}"].std(ddof=0)
-        if "phase_closure_err" in d:
-            rec["phase_closure_err"] = d.phase_closure_err.max()
+        if "dye_closure_err" in d:
+            rec["dye_closure_err"] = d.dye_closure_err.max()
         rows.append(rec)
     return pd.DataFrame(rows), n_dropped, t_cut
 
@@ -161,13 +161,17 @@ def report(case, label=""):
     print(f"{len(drops)} droplets measured after the {t_cut*1e3:.0f} ms "
           f"transit cut ({n_dropped} startup droplets discarded)")
 
-    if "phase_closure_err" in drops:
-        worst = drops.phase_closure_err.max()
-        verdict = "OK" if worst < 1e-4 else "*** SUSPECT ***"
-        print(f"phase closure error: {worst:.2e}   {verdict}")
-        if worst >= 1e-4:
-            print("  Phases do not sum to 1 within droplets. Every composition\n"
-                  "  below is unreliable; fix this before reading further.")
+    if "dye_closure_err" in drops:
+        worst = drops.dye_closure_err.max()
+        verdict = "OK" if worst < 0.02 else "*** SUSPECT ***"
+        print(f"dye closure error: {worst:.2%}   {verdict}")
+        print("  (sum of dyes vs alpha.water per droplet -- the dyes are passive\n"
+              "   scalars without MULES compression, so this is the numerical\n"
+              "   leakage and it BOUNDS how much of any bias below is not real.)")
+        if worst >= 0.02:
+            print("  Leakage exceeds 2%. A core-vs-wall bias smaller than this\n"
+                  "  cannot be distinguished from differential dye leakage.\n"
+                  "  Refine the mesh (--dx 20) before reporting anything.")
 
     c = drops[["c1", "c2", "c3"]].to_numpy()
     mean, sd = c.mean(axis=0), c.std(axis=0, ddof=1)
