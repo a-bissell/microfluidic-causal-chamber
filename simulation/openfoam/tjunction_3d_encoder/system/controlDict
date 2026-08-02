@@ -1,0 +1,86 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| Encoder twin: 3-dye cross-merge -> T-junction.                              |
+| Generated companion files come from gen_blockmesh.py; this one is hand-     |
+| maintained. Requires an ESI build (multiphaseInterFoam) -- see README.md.   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     multiphaseInterFoam;
+
+// (OpenFOAM.org has no multiphaseInterFoam equivalent under foamRun;
+//  this case requires an ESI build. See README.md "Requirements".)
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+// The encoder needs LONGER runs than the plain droplet cases. Water leaving
+// the merge node takes ~207 ms to reach the junction at the default 1200 um
+// leg, so droplets formed before that carry the seeded initial composition,
+// not inlet-derived laminated water, and cannot answer the sampling question.
+// At the corrected 800 um 3D rate of 9.09 Hz (110 ms period, see
+// results/mill3d800_2026-08) 0.8 s gives ~7 droplets of which ~5 are
+// inlet-derived. Do not shorten this without also shortening --l-leg.
+endTime         0.8;
+
+deltaT          1e-7;
+
+writeControl    adjustableRunTime;
+
+// 5 ms => ~22 writes per droplet period at 9.09 Hz. Enough to resolve the
+// formation cycle and to catch each droplet well clear of the junction.
+writeInterval   0.005;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  8;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   8;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+
+maxCo           0.5;
+
+maxAlphaCo      0.5;
+
+// Brackbill capillary limit dt < sqrt(rho_avg*dx^3 / (2*pi*sigma)):
+//   dx = 40 um, rho_avg = 980, sigma = 0.03  ->  1.82e-5 s
+// interFoam does not enforce this, and at these low velocities the Courant
+// limit alone would permit dt ~ 1e-4, where parasitic currents destroy the
+// interface. 1.5e-5 sits just under the limit.
+// NOTE this is 3x looser than tjunction_3d_mill's 5e-6, which was tuned for
+// 20 um cells at the 400 um chip; the limit goes as dx^1.5. If you re-run at
+// --dx 20 you must tighten this back to ~5e-6 or the interface will corrupt.
+maxDeltaT       1.5e-5;
+
+// No function objects. Per-inlet volumetric flux comes from the existing
+// scripts/extract_inlet_flux.py (Newell method on the VTK output) -- the same
+// code path the cyclicity result was measured with, rather than a second and
+// unvalidated route to the same number:
+//
+//   python3 ../scripts/extract_inlet_flux.py <case> \
+//       --patches oil_inlet dye1_inlet dye2_inlet dye3_inlet
+//
+// That gives the composition DELIVERED to the leg, independent of the phase
+// fields. Comparing it against the composition MEASURED in the droplet
+// separates a delivery error from a sampling error -- different failures with
+// different fixes, which the droplet fields alone cannot tell apart.
+
+// ************************************************************************* //

@@ -1,0 +1,17 @@
+#!/bin/bash
+cd "${0%/*}" || exit 1
+
+echo "Cleaning T-Junction case..."
+
+rm -rf [1-9]* 0.[0-9]* 0.0[0-9]*
+rm -rf constant/polyMesh
+rm -rf VTK
+rm -f log.*
+rm -rf processor*
+rm -rf postProcessing
+
+if [ -f 0/alpha.water.bak ]; then
+    mv 0/alpha.water.bak 0/alpha.water
+fi
+
+echo "Done."
