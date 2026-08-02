@@ -20,7 +20,7 @@ regions
     // water leg above the junction, from the top of the main channel up
     boxToCell
     {
-        box (0.002 0.0004 0) (0.0024 0.0024 0.0002);
+        box (0.002 0.0008 0) (0.0028 0.0028 0.0008);
         fieldValues ( volScalarFieldValue alpha.water 1 );
     }
 );

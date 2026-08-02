@@ -332,7 +332,7 @@ printing numbers that look fine.
 | 4-phase setup, `setFields` seeding | ✅ verified — solver reports phase-sum `1 1 1` |
 | `multiphaseInterFoam` runs the case | ✅ verified, OpenFOAM v1912 |
 | Wall contact angle | ✅ corrected after a 2D run jetted instead of dripping (see pitfall above) |
-| Droplet formation in 2D at these BCs | ⏳ in progress — **the gate on everything else** |
+| Droplet formation in 2D at these BCs | ❌ **not yet achieved — the gate on everything else.** See below. |
 | 3D run | ⏳ not yet run |
 | `extract_droplet_dye.py` / `analyze_encoder.py` on real droplets | ⏳ the extractor's droplet-finding and rejection logic has been exercised against a real VTK tree and behaved correctly (it correctly refused a slug still attached to the junction), but no run has yet produced a *detached* droplet for it to measure |
 
@@ -340,8 +340,38 @@ printing numbers that look fine.
 must reproduce the verified 800 µm 2D numbers from
 [`results/scaleup_2026-07`](../results/scaleup_2026-07/) — **slug length
 ~1240 µm, period ~175 ms** — because that is simultaneously the check on the
-new solver (`multiphaseInterFoam` vs `interFoam`), the looser timestep, and
-the merge geometry. If those three numbers come out right, all three changes
-are validated at once. If they do not, drop `maxDeltaT` to 5e-6 first, since
-that is the only one of the three where this case deviates from a value the
-project has already verified.
+new solver (`multiphaseInterFoam` vs `interFoam`), the timestep, and the merge
+geometry.
+
+### Open problem: no pinch-off yet
+
+As of this commit the 2D case **has not produced a detached droplet**, and
+this is the one thing that must be resolved before any 3D time is spent.
+
+Fixing the contact angle changed the behaviour substantially and in the right
+direction — the water went from a thin wall-riding jet (34% of channel height,
+running unbroken to 4.9 mm) to a compact body filling 45–65% of the channel
+and confined near the junction — but by t = 0.185 s the thread was still
+attached, growing at ~27 mm/s, and 2.5 mm long against an expected slug length
+of 1.24 mm.
+
+Three candidate causes, in the order worth testing:
+
+1. **OpenFOAM version.** Local verification here used the Ubuntu 24.04 package
+   (ESI **v1912**); this project's verified results were produced on **v2306**.
+   A control is running: the *unmodified, verified* `tjunction_3d_mill` case at
+   `--w-main 800 --two-d` with `interFoam`. If that does not drip either, the
+   discrepancy is the OpenFOAM build and not this case — in which case this
+   case may well be correct as committed, and the v2306 rig is the place to
+   find out.
+2. **`multiphaseInterFoam` vs `interFoam`.** The surface-tension force *should*
+   sum correctly across the three water–oil pairs — at a 1/3-1/3-1/3 interface
+   each pair contributes 1/3 of the two-phase value, totalling the same 1/δ —
+   and that was checked analytically, not just assumed. But it is untested in
+   this geometry. The isolating run is this case's mesh with `interFoam` and a
+   single water phase.
+3. **Merge geometry.** Least likely: with velocity-pinned inlets the flux
+   reaching the junction is identical to the reference by construction.
+
+Do not start the 3D run until step 1 drips and reproduces ~1240 µm / ~175 ms.
+The case, the scripts, and the analysis are ready; this is the remaining gate.
