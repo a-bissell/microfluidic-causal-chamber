@@ -188,8 +188,19 @@ python3 ../scripts/extract_droplet_dye.py .
 python3 ../scripts/analyze_encoder.py . --compare-with ../<2d-case-dir>
 ```
 
-Keep the 2D case directory (copy it aside) — `--compare-with` prints the
-dimensionality difference directly, which is the headline number.
+**Copy the 2D case directory aside before this step.** `gen_blockmesh.py`
+writes to fixed paths, so generating the 3D mesh overwrites `0/`,
+`system/blockMeshDict`, `system/setFieldsDict` *and `geometry.json`* — the 2D
+run's manifest included. Pairing a 3D manifest with 2D output is a mistake
+that costs hours, because the commanded composition and outlet window still
+look sane and the analysis runs without complaint while reporting wrong
+volumes under a wrong dimensionality label. `extract_droplet_dye.py` now
+cross-checks the manifest's cell count against the VTK and refuses to run on a
+mismatch (68,000 vs 6,800 at the defaults), but copying the directory is the
+habit that avoids the situation entirely.
+
+`--compare-with` then prints the dimensionality difference directly, which is
+the headline number.
 
 ### 3. Mesh-convergence confirmation — *required before reporting a bias*
 

@@ -242,6 +242,27 @@ def main():
           f"{'2D' if geom['two_d'] else '3D'}, commanded c = "
           f"{[round(v, 4) for v in geom['commanded_c']]}")
 
+    # geometry.json is written by gen_blockmesh.py and is overwritten every
+    # time it runs -- including by the OTHER variant, since the 2D baseline and
+    # the 3D case share one generator and one output path. Pairing a 3D
+    # manifest with a 2D run (or vice versa) is a mistake that costs hours: the
+    # commanded composition and outlet window still look sane, so the run
+    # analyses without complaint and produces wrong volumes and a wrong
+    # dimensionality label. Cell count catches it immediately -- the two
+    # variants differ by the depth cell count, 68000 vs 6800 at the defaults.
+    probe = vtk.vtkUnstructuredGridReader()
+    probe.SetFileName(str(files[0][1]))
+    probe.Update()
+    n_vtk = probe.GetOutput().GetNumberOfCells()
+    if n_vtk != geom["n_cells"]:
+        sys.exit(f"geometry.json says {geom['n_cells']} cells "
+                 f"({'2D' if geom['two_d'] else '3D'}) but the VTK output has "
+                 f"{n_vtk}. The manifest does not belong to this run -- it was "
+                 f"most likely overwritten by a later gen_blockmesh.py call for "
+                 f"the other variant. Copy the manifest that was generated "
+                 f"alongside this case's mesh, or re-run the generator with the "
+                 f"arguments this case was built with.")
+
     # foamToVTK indexes files by write number, not by time. Reconstruct the
     # physical time from the case's time directories so the transit-time cut
     # in analyze_encoder.py operates on seconds, not indices.
