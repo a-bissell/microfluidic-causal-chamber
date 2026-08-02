@@ -227,9 +227,12 @@ whether a bench calibration needs one number or a matrix.
 
 | Run | Cells | Wall time, 4 cores | Notes |
 |---|---|---|---|
-| 2D baseline | 6,800 | **~37 min** (measured) | 2,750 s per simulated second |
-| 3D | 68,000 | ~6 h (extrapolated ×10) | ~1.5–2 h at 16 ranks |
-| 3D, dx=20 µm | 544,000 | ~2–3 days | only if run 2 shows a bias |
+| 2D baseline | 6,800 | **~50 min** | measured 3,800 s per simulated second at `maxDeltaT 1e-5` |
+| 3D | 68,000 | ~8 h (extrapolated ×10 on cells) | ~2–2.5 h at 16 ranks |
+| 3D, `--dx 20` | 544,000 | ~2–3 days | only if run 2 shows a bias, and needs `maxDeltaT 5e-6` |
+
+Cell-count scaling is the honest bound but slightly pessimistic — the pressure
+solve does not scale quite linearly. Treat the 3D figure as an upper estimate.
 
 ### Yield — read this before choosing `endTime`
 
