@@ -72,13 +72,29 @@ def track(df, geom):
     strictly ordered and one-directional, so a droplet's centroid only ever
     increases in x and never overtakes another -- which makes this simple
     matching safe here in a way it would not be in general.
+
+    Candidates are drawn ONLY from the immediately preceding frame. Carrying
+    every id ever seen produces a specific and silent failure: a droplet that
+    has already left the window keeps its last centroid as a live candidate,
+    and when a later droplet advects to that same x it matches with distance
+    zero -- beating the correct predecessor. Successive droplets then collapse
+    into one id. On synthetic data with a known answer that turned 12 droplets
+    into 4, and it does not look like an error: it produces a plausible,
+    smaller droplet count with plausible compositions and a badly understated
+    between-droplet spread, which is exactly the quantity the channel estimate
+    depends on.
+
+    A droplet missing for a single frame therefore starts a new id rather than
+    resuming its old one. That over-counts slightly, which is the safe
+    direction: it inflates the apparent per-symbol spread rather than hiding
+    it, and singletons are dropped downstream.
     """
     df = df.sort_values(["time_s", "x_centroid_um"]).copy()
     df["droplet_id"] = -1
-    next_id, prev = 0, {}          # droplet_id -> last x_centroid
+    next_id, prev = 0, {}          # droplet_id -> x_centroid in the PREVIOUS frame
 
-    for t, frame in df.groupby("time_s", sort=True):
-        used = set()
+    for _, frame in df.groupby("time_s", sort=True):
+        used, current = set(), {}
         for idx, row in frame.iterrows():
             x = row.x_centroid_um
             best, best_d = None, np.inf
@@ -95,7 +111,8 @@ def track(df, geom):
                 next_id += 1
             used.add(best)
             df.loc[idx, "droplet_id"] = best
-            prev[best] = x
+            current[best] = x
+        prev = current             # expire anything not seen this frame
     return df
 
 
