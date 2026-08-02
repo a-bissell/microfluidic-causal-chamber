@@ -64,11 +64,16 @@ maxAlphaCo      0.5;
 //   dx = 40 um, rho_avg = 980, sigma = 0.03  ->  1.82e-5 s
 // interFoam does not enforce this, and at these low velocities the Courant
 // limit alone would permit dt ~ 1e-4, where parasitic currents destroy the
-// interface. 1.5e-5 sits just under the limit.
-// NOTE this is 3x looser than tjunction_3d_mill's 5e-6, which was tuned for
-// 20 um cells at the 400 um chip; the limit goes as dx^1.5. If you re-run at
-// --dx 20 you must tighten this back to ~5e-6 or the interface will corrupt.
-maxDeltaT       1.5e-5;
+// interface. 1e-5 sits at ~55% of the limit.
+// tjunction_3d_mill carries 5e-6, but that value was tuned for 20 um cells at
+// the 400 um chip and inherited unchanged by its 800 um runs -- conservative
+// by inheritance rather than by derivation. 1e-5 keeps real margin while
+// halving the cost. The 2D reference run is the check: it must reproduce the
+// verified 800 um 2D slug length of ~1240 um at ~175 ms period. If it does
+// not, drop to 5e-6 before suspecting anything else.
+// The limit goes as dx^1.5, so a --dx 20 run must tighten to ~5e-6 or the
+// interface will corrupt.
+maxDeltaT       1e-5;
 
 // No function objects. Per-inlet volumetric flux comes from the existing
 // scripts/extract_inlet_flux.py (Newell method on the VTK output) -- the same

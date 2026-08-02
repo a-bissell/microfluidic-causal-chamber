@@ -133,6 +133,31 @@ there — unlike the other cases in this directory, which support both.
 
 ---
 
+## One pitfall, already hit
+
+**Wall wetting is load-bearing.** The first version of this generator emitted
+`zeroGradient` for `alpha` on walls — neutral wetting, 90°. The case meshed
+cleanly, ran cleanly, conserved phase to machine precision, and **produced no
+droplets at all**: water entered at the top of the channel and rode the wall as
+a jet out to 2.9 mm without ever blocking the junction, so the oil never had to
+squeeze it. Nothing looked wrong; the answer simply never appeared.
+
+The two-phase cases here carry `theta0 = 160°` with a comment recording the
+same lesson — *"160 deg keeps the water thread off the walls so it can neck
+and pinch off (120 deg let water spread as a stable wall film)"*.
+
+`multiphaseInterFoam` needs a contact angle for **every phase pair**, so the
+generator emits the 4-phase generalisation: 160° for each water–oil pair, 90°
+for water–water (arbitrary — same fluid, no physical contact line — but the
+entry must exist or BC construction fails at run time, after meshing has
+already succeeded). Order matters: `theta0` is measured through the *first*
+phase of each pair, so `( oil water1 ) 160` would specify water-wet walls and
+reproduce the failure.
+
+If a run produces a long attached jet instead of droplets, check this first.
+
+---
+
 ## Run plan
 
 Ordered by information per CPU-hour. **Run 1 and 2 are the experiment**; 3 and
@@ -195,13 +220,48 @@ whether a bench calibration needs one number or a matrix.
 | 3D | 68,000 | ~6 h (extrapolated ×10) | ~1.5–2 h at 16 ranks |
 | 3D, dx=20 µm | 544,000 | ~2–3 days | only if run 2 shows a bias |
 
-`endTime` is 0.8 s, longer than the other cases here, and that is not
-padding: water takes **~207 ms** to travel from the merge node to the junction
-at the default leg length. Droplets formed before then carry the *seeded*
-composition from `setFields`, not one the encoder wrote — they would agree with
-the commanded value for a trivial reason. `analyze_encoder.py` discards them,
-which leaves ~5 measurable droplets from a 0.8 s run. Shortening `endTime`
-without shortening `--l-leg` will leave you with nothing to measure.
+### Yield — read this before choosing `endTime`
+
+`endTime` is 0.8 s, longer than the other cases here, and that is not padding.
+Water takes **~207 ms** to travel from the merge node to the junction at the
+default leg length. Droplets formed before then carry the *seeded* composition
+from `setFields`, not one the encoder wrote.
+
+That cut is not squeamishness — it is necessary for a specific reason. The
+seeded water is *uniformly mixed*, whereas inlet-derived water is *laminated*,
+and uniformly-mixed water **cannot exhibit a lamination bias by construction**.
+Including those droplets would not just be trivially favourable, it would
+actively dilute the effect being measured.
+
+Usable yield is therefore `(endTime − t_transit) / droplet_period`:
+
+| | period | yield at `endTime` 0.8 s | at 1.2 s |
+|---|---|---|---|
+| 2D | 175 ms | **~3 droplets** | ~6 |
+| 3D | 110 ms | **~5 droplets** | ~9 |
+
+**This matters differently for the two headline numbers.** The core-vs-wall
+bias is a statement about the *mean*, and ~5 droplets supports it adequately
+provided within-droplet scatter is small. The channel-capacity figure is a
+statement about the *between-droplet SD*, and ~5 droplets does not support it
+— an SD from n=5 carries roughly a 35% standard error of its own.
+`analyze_encoder.py` refuses to present the capacity as a result below n=8 and
+says so explicitly.
+
+So: **0.8 s is enough to measure the bias, not enough to measure the
+capacity.** If you want both from one run, use `endTime 1.2` and accept ~9 h
+on 4 cores.
+
+Two cheaper ways to raise yield, in preference order:
+
+1. **Shorten `--l-leg`.** Under velocity inlets this is nearly free — the leg
+   length exists to decouple junction pressure from the merge node, and that
+   coupling is already zero here because the flow rates are pinned. The leg
+   only needs to be long enough for the laminae to establish, roughly one
+   channel width. `--l-leg 800` cuts transit to ~138 ms and buys ~0.6
+   droplets per 0.1 s of run. **Do not do this for the pressure-driven
+   crosstalk variant**, where the leg length is hydraulically load-bearing.
+2. Raise `endTime`. Linear in cost, no side effects.
 
 ---
 
@@ -256,11 +316,18 @@ printing numbers that look fine.
 |---|---|
 | Mesh generation, 2D and 3D | ✅ verified, `checkMesh` clean, all 5 inlet patches correct |
 | 4-phase setup, `setFields` seeding | ✅ verified — solver reports phase-sum `1 1 1` |
-| `multiphaseInterFoam` runs the case | ✅ verified (short solve, OpenFOAM v1912) |
-| Full 0.8 s 2D reference run | ⏳ see run plan step 1 |
+| `multiphaseInterFoam` runs the case | ✅ verified, OpenFOAM v1912 |
+| Wall contact angle | ✅ corrected after a 2D run jetted instead of dripping (see pitfall above) |
+| Droplet formation in 2D at these BCs | ⏳ in progress — **the gate on everything else** |
 | 3D run | ⏳ not yet run |
-| `extract_droplet_dye.py` / `analyze_encoder.py` on real droplet data | ⏳ not yet exercised end-to-end |
+| `extract_droplet_dye.py` / `analyze_encoder.py` on real droplets | ⏳ the extractor's droplet-finding and rejection logic has been exercised against a real VTK tree and behaved correctly (it correctly refused a slug still attached to the junction), but no run has yet produced a *detached* droplet for it to measure |
 
-The scripts are written against the field names and geometry manifest this
-case emits, but until step 1 completes they have not been run on a VTK tree
-containing actual droplets. Expect to fix something small on first use.
+**The acceptance test for step 1** is not just "droplets appear". The 2D case
+must reproduce the verified 800 µm 2D numbers from
+[`results/scaleup_2026-07`](../results/scaleup_2026-07/) — **slug length
+~1240 µm, period ~175 ms** — because that is simultaneously the check on the
+new solver (`multiphaseInterFoam` vs `interFoam`), the looser timestep, and
+the merge geometry. If those three numbers come out right, all three changes
+are validated at once. If they do not, drop `maxDeltaT` to 5e-6 first, since
+that is the only one of the three where this case deviates from a value the
+project has already verified.

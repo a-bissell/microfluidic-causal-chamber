@@ -378,6 +378,55 @@ ZG = "        type            zeroGradient;\n"
 INOUT = ("        type            inletOutlet;\n"
          "        inletValue      uniform {v};\n        value           uniform {v};\n")
 
+# WALL WETTING IS LOAD-BEARING, NOT A DETAIL.
+#
+# theta0 = 160 deg measured through the water phase: strongly oil-wet walls,
+# carried over from tjunction_2d_mill and tjunction_3d_mill, whose own comment
+# records what happens otherwise -- "160 deg keeps the water thread off the
+# walls so it can neck and pinch off (120 deg let water spread as a stable
+# wall film)".
+#
+# This was learned here the expensive way. The first version of this generator
+# emitted zeroGradient on walls, which is NEUTRAL wetting (90 deg). The case
+# meshed cleanly, ran cleanly, conserved phase perfectly, and produced no
+# droplets at all: the water entered at the top of the channel and rode along
+# the wall as a jet out to 2.9 mm without ever blocking the junction, so the
+# oil never had to squeeze it. Nothing about the run looked wrong except that
+# the answer never appeared. Do not "simplify" this back to zeroGradient.
+#
+# multiphaseInterFoam needs a contact angle for EVERY phase pair, not one
+# value per field, so the table below is the 4-phase generalisation of the
+# single theta0 the two-phase cases carry. Water-water pairs get 90 deg: they
+# are the same fluid and there is no physical contact line between them, so
+# the value is arbitrary -- but the entry must exist or the BC construction
+# fails at run time, after meshing has already succeeded.
+THETA_WATER_OIL = 160.0
+THETA_WATER_WATER = 90.0
+
+
+def contact_angle_bc():
+    """alphaContactAngle wall BC covering all six phase pairs.
+
+    Order matters: theta0 is measured through the FIRST phase of each pair, so
+    water must lead in every water-oil pair for 160 deg to mean 'oil-wet'.
+    Writing (oil water1) 160 would specify the exact opposite -- water-wet
+    walls -- and would reproduce the wall-film failure described above.
+    """
+    rows = []
+    for i, a_ in enumerate(PHASES):
+        for b_ in PHASES[i + 1:]:
+            theta = THETA_WATER_OIL if b_ == "oil" else THETA_WATER_WATER
+            rows.append(f"            ( {a_} {b_} ) {theta:g} 0 0 0")
+    return ("        // ESI name: alphaContactAngle (multiphase form).\n"
+            "        // theta0 through the first phase of each pair; 160 deg\n"
+            "        // = oil-wet, which is what lets the thread neck.\n"
+            "        type            alphaContactAngle;\n"
+            "        thetaProperties\n        (\n"
+            + "\n".join(rows) +
+            "\n        );\n        limit           gradient;\n"
+            "        value           uniform 0;\n")
+
+
 # Which inlet carries which phase at fraction 1.
 INLET_PHASE = {"dye1_inlet": "water1", "dye2_inlet": "water2",
                "dye3_inlet": "water3", "oil_inlet": "oil"}
@@ -387,7 +436,7 @@ for ph in PHASES:
     for patch, patch_phase in sorted(INLET_PHASE.items()):
         entries.append((patch, FIXED.format(v=1 if patch_phase == ph else 0)))
     entries.append(("outlet", INOUT.format(v=1 if ph == "oil" else 0)))
-    entries.append(("walls", ZG))
+    entries.append(("walls", contact_angle_bc()))
     fld = [HDR.format(cls="volScalarField", obj=f"alpha.{ph}"),
            "\ndimensions      [0 0 0 0 0 0 0];\n"
            f"\ninternalField   uniform {1 if ph == 'oil' else 0};\n",

@@ -188,23 +188,43 @@ def report(case, label=""):
           f"  with the symmetry control passing, is corner intrusion in the\n"
           f"  water leg biasing the junction toward the core lamina.")
 
+    # The bias and the capacity have very different sample-size needs, and
+    # conflating them is the easiest way to overclaim from a short run. The
+    # bias is a statement about the MEAN, which a handful of droplets supports
+    # if the within-droplet noise is small. The capacity is a statement about
+    # the between-droplet SD, which a handful of droplets does not support at
+    # all -- an SD from n=4 has roughly a 40% standard error of its own.
+    N_FOR_SD = 8
     print(f"\n--- 4. Channel estimate ---")
+    if len(drops) < N_FOR_SD:
+        print(f"  n = {len(drops)} droplets: TOO FEW for a spread-based claim.")
+        print(f"  The bias above is still usable (it is a statement about the")
+        print(f"  mean); the numbers below are indicative only. For a defensible")
+        print(f"  per-symbol noise figure, raise endTime -- yield is")
+        print(f"  (endTime - t_transit) / droplet_period, so at t_transit =")
+        print(f"  {geom['t_transit_s']*1e3:.0f} ms each extra 0.4 s buys ~4 droplets in 3D.")
     # Composition lives on the 2-simplex. Treat the per-symbol noise as
     # isotropic with scale sd_mean and require codes separated by 3 sigma to
     # be reliably distinguishable. This is a scaling argument: it ignores the
     # simplex boundary, any noise correlation between dyes, and all decoder
     # cleverness. Treat it as an order of magnitude.
     sd_mean = float(sd.mean())
-    if sd_mean > 0:
+    if sd_mean <= 0:
+        print("  per-symbol sd is zero -- too few droplets, or every droplet\n"
+              "  measured identically. No channel estimate possible.")
+    else:
         levels = 1.0 / (3.0 * sd_mean)
-        n_codes = 0.5 * levels ** 2          # area of the 2-simplex in units of cells
+        n_codes = max(0.5 * levels ** 2, 1.0)   # 2-simplex area in noise cells
         print(f"  per-symbol sd = {sd_mean:.4f} -> ~{levels:.1f} levels per axis")
-        print(f"  ~{max(n_codes, 1):.0f} distinguishable codes "
-              f"(~{np.log2(max(n_codes, 1)):.1f} bits/droplet at 3-sigma spacing)")
+        print(f"  ~{n_codes:.0f} distinguishable codes "
+              f"(~{np.log2(n_codes):.1f} bits/droplet at 3-sigma spacing)")
         print(f"  Scaling argument only: ignores simplex boundaries, inter-dye\n"
               f"  noise correlation, and decoding. Order of magnitude.")
-    print(f"  measurement noise is {within.mean()/sd_mean:.2f}x the per-symbol\n"
-          f"  noise -- {'measurement-limited, refine the mesh' if within.mean() > sd_mean else 'physics-limited, the estimate is meaningful'}")
+        ratio = within.mean() / sd_mean
+        limited = ("measurement-limited, refine the mesh before believing the"
+                   " spread" if ratio > 1 else "physics-limited, the spread is real")
+        print(f"  measurement noise is {ratio:.2f}x the per-symbol noise "
+              f"-- {limited}")
 
     return {"dim": dim, "mean": mean, "sd": sd, "asym": asym, "bias": bias,
             "n": len(drops), "cmd": c_cmd}
