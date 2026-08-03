@@ -195,6 +195,42 @@ If a run produces a long attached jet instead of droplets, check this first.
 Ordered by information per CPU-hour. **Run 1 and 2 are the experiment**; 3 and
 4 defend it.
 
+### 0. Dye-transport pre-flight — 2 minutes, do this first
+
+The three dye scalars are `scalarTransport` function objects, and they have
+never been run anywhere: the build used for local verification aborts on *any*
+function object (see Requirements). Everything else about this case is
+verified; this is the one open link, and it is cheap to close.
+
+```bash
+cd tjunction_3d_encoder
+python3 gen_blockmesh.py --w-main 800 --two-d
+
+# short run: 0.02 s is plenty, no droplets needed
+sed -i.bak 's/^endTime         0.8;/endTime         0.02;/' system/controlDict
+./Allrun 4
+python3 ../scripts/check_dye_transport.py .
+mv system/controlDict.bak system/controlDict     # restore
+```
+
+`check_dye_transport.py` tests three things, and the middle one is the reason
+it exists:
+
+1. the dye fields are present in the output;
+2. **they have changed since t=0** — a field that is registered and written
+   but never advected is the silent failure. The run completes, makes good
+   droplets, and reports compositions exactly equal to the seeded values,
+   which looks like a plausible result;
+3. `Σ dye_i == alpha.water` over wet cells — the leakage number that later
+   bounds how much of any measured bias could be numerical.
+
+**If it fails with "Unknown function type scalarTransport" or a library load
+error**, it is the `libs` entry in `system/controlDict`, not the case. The
+`("libsolverFunctionObjects.so")` spelling is ESI. Try deleting the three
+`libs` lines entirely first — most builds resolve the type without them. If
+your build genuinely lacks the function object, an ESI image (v2306) is the
+fallback, and everything else in this case is version-agnostic.
+
 ### 1. Matched 2D baseline — the null
 
 ```bash
