@@ -116,50 +116,201 @@ def track(df, geom):
     return df
 
 
-def per_droplet(df, geom, settle_factor=1.0):
-    """Collapse frames to one row per droplet, after the startup cut.
+def settle_cut(df, geom):
+    """Time before which a droplet cannot carry an encoder-written composition.
 
-    Droplets formed before inlet-derived water reaches the junction carry the
-    SEEDED composition from setFields, not a composition the encoder wrote.
-    They would agree with the commanded value for a trivial reason -- the
-    initial condition was set to it -- and including them would manufacture a
-    fidelity result. The cut is at the merge->junction transit time.
+    Three things must finish before a droplet's composition is the one the
+    inlets commanded, and `t_transit_s` covers only the first:
+
+      1. the LEG flushes         l_leg / u_leg      <- this is t_transit_s
+      2. the MERGE NODE flushes  w_main / u_leg     <- omitted
+      3. a droplet then forms    one droplet period <- omitted
+
+    setFieldsDict seeds uniform (1/3, 1/3, 1/3) water across the whole column
+    above the junction -- the leg AND the square merge node above it -- so a
+    cut at the leg transit alone passes droplets that are still part seeded
+    water. In the 0.8 s 2D reference run it let two through: their
+    core-vs-wall signature was -0.087 and -0.039 while the one clean droplet
+    gave +0.002, and averaging the three produced a false ASYMMETRIC verdict.
+
+    The period is measured from the run rather than assumed. Formation is very
+    regular here (170.0 ms between each of four droplets in the reference run)
+    and it is a hydrodynamic quantity, so the startup transient does not
+    corrupt it even though the compositions are still settling.
     """
-    t_cut = geom["t_transit_s"] * settle_factor
-    kept = df[df.time_s >= t_cut]
+    t_flush = (geom["l_leg_um"] + geom["w_main_um"]) * 1e-6 / geom["u_leg_m_s"]
+
+    first = df.groupby("droplet_id").time_s.min().sort_values()
+    if len(first) >= 2:
+        period = float(np.median(np.diff(first.to_numpy())))
+        period_src = f"measured, {period*1e3:.0f} ms"
+    else:
+        period = 0.0
+        period_src = "UNKNOWN -- fewer than 2 droplets, cut may be too early"
+    return t_flush + period, t_flush, period, period_src
+
+
+def _fit_to_station(d, x_ref_um):
+    """Composition regressed onto x and evaluated at the pinch-off station.
+
+    A droplet's composition is fixed the moment it detaches and cannot
+    physically change afterwards: the three dyes are the same fluid, advected
+    with D = 0, so nothing redistributes them between laminae.
+
+    The MEASURED composition does change as the droplet travels, because the
+    passive scalars get no MULES compression and bleed across the interface,
+    and the bleed is differential between laminae at different distances from
+    it. In the reference run the alpha volume was conserved to 0.2% over a
+    2 mm window while the summed dye fell by up to 14%, and c1 - c3 drifted by
+    -0.009 to -0.016 per mm of travel. Most of that run's alarming
+    c1 - c3 = -0.066 was accumulated AFTER pinch-off; at the junction it was
+    -0.004.
+
+    So a mean over a droplet's frames answers "what was the composition
+    wherever this droplet happened to be sampled", which is not the question.
+    Regress on x and read the fit at the junction instead. The residual about
+    that fit is the real within-droplet measurement noise -- the previous
+    std() over frames was dominated by the drift and overstated it.
+
+    Returns (composition, drift_per_mm, residual_sd, extrapolation_um).
+    """
+    x = d.x_centroid_um.to_numpy()
+    c, drift, resid = {}, {}, {}
+    if len(d) >= 3 and np.ptp(x) > 0:
+        for k in (1, 2, 3):
+            y = d[f"c{k}"].to_numpy()
+            slope, intercept = np.polyfit(x, y, 1)
+            c[k] = float(slope * x_ref_um + intercept)
+            drift[k] = float(slope * 1000.0)          # per mm
+            resid[k] = float(np.std(y - (slope * x + intercept), ddof=0))
+    else:
+        # Too few frames to separate drift from noise; fall back to the mean
+        # and say so by leaving the drift undefined.
+        for k in (1, 2, 3):
+            c[k] = float(d[f"c{k}"].mean())
+            drift[k] = np.nan
+            resid[k] = float(d[f"c{k}"].std(ddof=0))
+    return c, drift, resid, float(x.min() - x_ref_um)
+
+
+def per_droplet(df, geom):
+    """Collapse frames to one row per droplet, after the startup cut."""
+    t_cut, t_flush, period, period_src = settle_cut(df, geom)
+
+    # Cut on FORMATION time, per droplet -- not on frame time. A droplet that
+    # formed before the cut is contaminated for its whole life; keeping its
+    # later frames keeps the contamination and, worse, leaves only frames far
+    # downstream, which lengthens the extrapolation back to the junction and
+    # weakens the fit exactly where it is already weakest.
+    t_first = df.groupby("droplet_id").time_s.transform("min")
+    kept = df[t_first >= t_cut]
     n_dropped = df.droplet_id.nunique() - kept.droplet_id.nunique()
     if kept.empty:
-        sys.exit(f"Every droplet formed before t_transit = {t_cut*1e3:.0f} ms. "
-                 f"The run is too short to say anything about the encoder; "
-                 f"raise endTime or shorten --l-leg.")
+        sys.exit(
+            f"Every droplet formed before the settle cut at {t_cut*1e3:.0f} ms "
+            f"({t_flush*1e3:.0f} ms to flush the leg and merge node, plus one "
+            f"{period*1e3:.0f} ms formation period).\nThe run is too short to "
+            f"say anything about the encoder; raise endTime or shorten "
+            f"--l-leg.\nNote this cut is LATER than t_transit_s "
+            f"({geom['t_transit_s']*1e3:.0f} ms), which counts the leg only.")
 
-    g = kept.groupby("droplet_id")
+    # Composition is read at the downstream edge of the junction -- where the
+    # droplet detaches, and therefore where its code is written.
+    x_ref = float(geom["x_junction_um"][1])
+
     rows = []
-    for did, d in g:
+    for did, d in kept.groupby("droplet_id"):
         if len(d) < 2:
             continue
+        c, drift, resid, extrap = _fit_to_station(d, x_ref)
+        # Within-droplet scatter of the core signal itself, straight from the
+        # frames. A clean slug advects rigidly, so its composition is fixed and
+        # this is only measurement noise (~0.003 here). A coalescence event or
+        # a mistrack makes the frames disagree -- the -0.20 outlier in the
+        # 6.5 s run had 0.043, 12x the norm. It is the honest "is this one
+        # rigid droplet" number, and report() filters on it.
+        core_frames = d.c2 - 0.5 * (d.c1 + d.c3)
         rec = {"droplet_id": did, "n_frames": len(d),
                "t_first_s": d.time_s.min(),
-               "L_um": d.L_um.mean(), "V_nL": d.V_nL.mean()}
+               "L_um": d.L_um.mean(), "V_nL": d.V_nL.mean(),
+               "extrap_um": extrap,
+               "core_within_sd": float(core_frames.std(ddof=0))}
         for k in (1, 2, 3):
-            rec[f"c{k}"] = d[f"c{k}"].mean()
-            rec[f"c{k}_within_sd"] = d[f"c{k}"].std(ddof=0)
+            rec[f"c{k}"] = c[k]
+            rec[f"c{k}_within_sd"] = resid[k]
+            rec[f"c{k}_drift_per_mm"] = drift[k]
+            rec[f"c{k}_rawmean"] = float(d[f"c{k}"].mean())
         if "dye_closure_err" in d:
             rec["dye_closure_err"] = d.dye_closure_err.max()
+        if "dye_outside_frac" in d:
+            rec["dye_outside_frac"] = d.dye_outside_frac.mean()
+        # Same quantities at a stricter interface cut, to expose how much of
+        # the answer rests on where the interface is sliced.
+        for src, dst in (("core_bias_strict", "core_strict"),
+                         ("asym_strict", "asym_strict")):
+            if src in d:
+                rec[dst] = d[src].mean()
         rows.append(rec)
-    return pd.DataFrame(rows), n_dropped, t_cut
+    return (pd.DataFrame(rows), n_dropped,
+            {"t_cut": t_cut, "t_flush": t_flush, "period": period,
+             "period_src": period_src, "x_ref": x_ref})
+
+
+def flag_unstable(drops):
+    """Drop droplets whose composition is not internally consistent.
+
+    A droplet's code is fixed at pinch-off and cannot change as it advects, so
+    across its frames the core signal should hold to within measurement noise.
+    A droplet that instead disagrees frame-to-frame is not one rigid slug: it
+    is a coalescence event, a satellite catching its parent, or a tracking slip
+    that stitched two bodies together. Its mean is not a symbol and must not
+    enter the statistics.
+
+    The threshold is self-calibrating -- a robust centre and spread of the
+    population's own within-scatter (median + 4x scaled-MAD), floored so a run
+    where every droplet is clean does not manufacture a cut from pure noise.
+    On the 6.5 s multiphase run this removes exactly the one coalescence
+    droplet (within-scatter 0.043) that levered the OLS trend to -0.035; the
+    robust mean barely moves because it was never really there.
+
+    This is NOT the |core| > 0.07 outlier test used in the write-up. That test
+    peeks at the answer -- it removes droplets for having an extreme result,
+    which biases the mean toward zero by construction. This one removes them
+    for being self-inconsistent, a property of the measurement independent of
+    what value it lands on, so an unstable droplet that happened to read ~0
+    is dropped too.
+    """
+    if "core_within_sd" not in drops or len(drops) < 4:
+        return drops, drops.iloc[:0]
+    w = drops.core_within_sd.to_numpy()
+    med = float(np.median(w))
+    mad = float(np.median(np.abs(w - med))) * 1.4826
+    thr = max(med + 4.0 * mad, 0.015)     # floor: 4-5x a clean droplet's noise
+    keep = drops.core_within_sd <= thr
+    return drops[keep].reset_index(drop=True), drops[~keep]
 
 
 def report(case, label=""):
     df_raw, geom = load(case)
     df = track(df_raw, geom)
-    drops, n_dropped, t_cut = per_droplet(df, geom)
+    drops, n_dropped, cut = per_droplet(df, geom)
+    drops, unstable = flag_unstable(drops)
     c_cmd = np.array(geom["commanded_c"])
     dim = "2D" if geom["two_d"] else "3D"
 
     print(f"\n{'='*68}\n{label or case.name}   [{dim}, w = {geom['w_main_um']:.0f} um]\n{'='*68}")
-    print(f"{len(drops)} droplets measured after the {t_cut*1e3:.0f} ms "
-          f"transit cut ({n_dropped} startup droplets discarded)")
+    print(f"{len(drops)} droplets measured after the {cut['t_cut']*1e3:.0f} ms "
+          f"settle cut ({n_dropped} startup droplets discarded)")
+    if len(unstable):
+        ids = ", ".join(f"#{int(r.droplet_id)}(sd={r.core_within_sd:.3f})"
+                        for r in unstable.itertuples())
+        print(f"  {len(unstable)} unstable droplet(s) dropped -- composition not "
+              f"rigid frame-to-frame\n  (coalescence / mistrack): {ids}")
+    print(f"  cut = {cut['t_flush']*1e3:.0f} ms to flush leg + merge node"
+          f"  +  1 formation period ({cut['period_src']})")
+    print(f"  composition read at x = {cut['x_ref']:.0f} um (pinch-off), "
+          f"extrapolated from {drops.extrap_um.min():.0f}-"
+          f"{drops.extrap_um.max():.0f} um downstream")
 
     if "dye_closure_err" in drops:
         worst = drops.dye_closure_err.max()
@@ -173,8 +324,47 @@ def report(case, label=""):
                   "  cannot be distinguished from differential dye leakage.\n"
                   "  Refine the mesh (--dx 20) before reporting anything.")
 
+    if "dye_outside_frac" in drops:
+        out = float(drops.dye_outside_frac.mean())
+        print(f"below the mask: {out:.2%} of the window's dye sits in cells with "
+              f"water < 0.5.\n  Part interface shell, part escape -- not "
+              f"comparable between solvers.")
+    if "dye_dry_frac" in drops:
+        dry = float(drops.dye_dry_frac.mean())
+        verdict = "OK" if dry < 0.01 else "*** LEAKING ***"
+        print(f"in essentially pure oil: {dry:.3%}   {verdict}")
+        print("  Material in cells with water < 0.01. This is the real escape,\n"
+              "  and it means the same thing for passive scalars and for\n"
+              "  multiphase (where it is ~0 by construction). It is the number\n"
+              "  that bounds how much of any bias below is the method leaking.")
+
+    # Post-pinch-off drift. This is a pure artifact -- composition is fixed at
+    # detachment -- so it is reported as a correction size, not a result. When
+    # the correction is comparable to the bias being measured, the bias is
+    # resting on an extrapolation rather than on data.
+    drift_cols = ["c1_drift_per_mm", "c2_drift_per_mm", "c3_drift_per_mm"]
+    if drift_cols[0] in drops and drops[drift_cols].notna().any().any():
+        dr = drops[drift_cols].to_numpy()
+        worst_drift = float(np.nanmax(np.abs(dr)))
+        corr = worst_drift * abs(drops.extrap_um.mean()) / 1000.0
+        print(f"\ndye-leakage drift: up to {worst_drift:+.4f} per mm of travel "
+              f"(c1/c2/c3 = "
+              f"{np.nanmean(dr[:, 0]):+.4f}/{np.nanmean(dr[:, 1]):+.4f}/"
+              f"{np.nanmean(dr[:, 2]):+.4f})")
+        print(f"  Composition cannot change after pinch-off, so this is the\n"
+              f"  passive scalars bleeding differentially across the interface.\n"
+              f"  Correcting for it moved the composition by ~{corr:.4f}.")
+        if corr > 0.01:
+            print("  This correction is LARGE. The reported bias depends on the\n"
+                  "  linear extrapolation back to the junction being right.\n"
+                  "  Write output more often, or measure nearer the junction.")
+
     c = drops[["c1", "c2", "c3"]].to_numpy()
-    mean, sd = c.mean(axis=0), c.std(axis=0, ddof=1)
+    mean = c.mean(axis=0)
+    # ddof=1 on a single droplet is a divide-by-zero, and the resulting nan
+    # would quietly pass every comparison below it. n < 2 is reported as a
+    # missing scatter estimate instead.
+    sd = c.std(axis=0, ddof=1) if len(drops) > 1 else np.full(3, np.nan)
     within = drops[["c1_within_sd", "c2_within_sd", "c3_within_sd"]].mean().to_numpy()
 
     print(f"\n--- 1. Fidelity ---")
@@ -191,11 +381,40 @@ def report(case, label=""):
     # the noise on it is not evidence of anything.
     se = np.sqrt(sd[0]**2 + sd[2]**2) / max(np.sqrt(len(drops)), 1)
     print(f"  c1 - c3 = {asym:+.5f}   (standard error {se:.5f})")
-    if abs(asym) > 3 * se and abs(asym) > 0.005:
-        print("  *** ASYMMETRIC *** The two mirror legs disagree by more than\n"
-              "  scatter allows. This is an artifact, not physics -- suspect the\n"
-              "  mesh, the decomposition, or the BCs. Do not report a c2 bias\n"
-              "  from this run.")
+    # The composition integral is masked at alpha > 0.5 and is therefore
+    # independent of the integration window. It is NOT independent of where
+    # the interface is cut. Showing the strict-cut value alongside keeps a
+    # verdict that flips between the two from reading as a clean pass.
+    if "asym_strict" in drops:
+        a_s = float(drops.asym_strict.mean())
+        print(f"  at a stricter interface cut (alpha > 0.9): {a_s:+.5f}")
+        if np.sign(a_s) != np.sign(asym) or abs(a_s - asym) > max(abs(asym), 0.005):
+            print("  *** CUT-DEPENDENT *** The two cuts disagree materially.\n"
+                  "  This control is not resolving a real asymmetry; do not\n"
+                  "  read either value as the answer.")
+    if len(drops) < 2:
+        # With one droplet there is no between-droplet scatter to test
+        # against, and nan comparisons below would silently read as "passed".
+        print("  n = 1: NO SCATTER ESTIMATE. This control cannot run, so\n"
+              "  nothing below it is gated. Treat the run as inconclusive\n"
+              "  rather than as a pass -- raise endTime.")
+    elif abs(asym) > 3 * se and abs(asym) > 0.005:
+        # NOTE: this was originally read as a run-quality gate -- a nonzero
+        # c1-c3 was assumed to mean a broken mesh/decomposition/BC, because the
+        # legs are mirror images in plan. results/encoder_dye_2026-08 showed
+        # that assumption is wrong: the clean multiphase run gives a stationary
+        # c1-c3 ~ -0.035 because oil crosses the junction in one direction, so
+        # the upstream lamina (dye1) is stripped more than the downstream one
+        # (dye3). It is a REAL in-plane leg asymmetry, not an artifact, and it
+        # does NOT invalidate the core-vs-wall bias -- which averages c1 and c3
+        # and so cancels it. Flagged, not fatal.
+        print("  *** ASYMMETRIC *** c1 and c3 differ by more than scatter.\n"
+              "  This is most likely the REAL leg asymmetry (oil crosses the\n"
+              "  junction one way; dye1 is stripped more than dye3) -- see\n"
+              "  results/encoder_dye_2026-08 -- NOT a broken run. It does not\n"
+              "  invalidate the core-vs-wall bias below, which averages c1,c3.\n"
+              "  Only suspect mesh/decomposition/BCs if |c1-c3| is far larger\n"
+              "  than the ~0.035 measured there, or flips sign between meshes.")
     else:
         print("  Symmetric within scatter. The measurement is self-consistent,\n"
               "  so a c2 departure below can be read as physical.")
@@ -220,10 +439,11 @@ def report(case, label=""):
     if len(drops) < N_FOR_SD:
         print(f"  n = {len(drops)} droplets: TOO FEW for a spread-based claim.")
         print(f"  The bias above is still usable (it is a statement about the")
-        print(f"  mean); the numbers below are indicative only. For a defensible")
-        print(f"  per-symbol noise figure, raise endTime -- yield is")
-        print(f"  (endTime - t_transit) / droplet_period, so at t_transit =")
-        print(f"  {geom['t_transit_s']*1e3:.0f} ms each extra 0.4 s buys ~4 droplets in 3D.")
+        print(f"  mean); the numbers below are indicative only. Yield is")
+        print(f"  (endTime - {cut['t_cut']*1e3:.0f} ms) / {cut['period']*1e3:.0f} ms, "
+              f"so reaching n = {N_FOR_SD} needs")
+        need = cut["t_cut"] + N_FOR_SD * cut["period"]
+        print(f"  endTime >= {need:.2f} s.")
     # Composition lives on the 2-simplex. Treat the per-symbol noise as
     # isotropic with scale sd_mean and require codes separated by 3 sigma to
     # be reliably distinguishable. This is a scaling argument: it ignores the

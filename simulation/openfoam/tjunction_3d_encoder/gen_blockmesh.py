@@ -293,12 +293,23 @@ U_oil = a.q_oil * 1e-9 / A                # m/s
 U_dye = [ci * a.q_water * 1e-9 / A for ci in C]
 U_leg = a.q_water * 1e-9 / A
 t_transit = (L_LEG * 1e-6) / U_leg
+# setFields seeds uniform (1/3,1/3,1/3) water across the whole column above
+# the junction -- the leg AND the square merge node on top of it -- so the
+# seeded water that must clear is L_LEG + W_MAIN, not L_LEG. A droplet then
+# needs one more formation period before it is written entirely from
+# inlet-derived fluid. analyze_encoder.py cuts at this settle time, not at
+# t_transit; the 0.8 s reference run cut at t_transit and passed two
+# still-settling droplets, which faked an asymmetry.
+t_flush = ((L_LEG + a.w_main) * 1e-6) / U_leg
 
 print(f"U_oil = {U_oil:.6f} m/s, U_leg = {U_leg:.6f} m/s")
 print(f"U_dye = [{U_dye[0]:.6f}, {U_dye[1]:.6f}, {U_dye[2]:.6f}] m/s  "
       f"for c = [{C[0]:.4f}, {C[1]:.4f}, {C[2]:.4f}]")
-print(f"merge->junction transit = {t_transit*1e3:.1f} ms "
-      f"(set endTime >= ~4x this to get inlet-derived droplets)")
+print(f"merge->junction transit = {t_transit*1e3:.1f} ms (leg only)")
+print(f"leg + merge node flush   = {t_flush*1e3:.1f} ms, plus one droplet "
+      f"period before a clean droplet forms.")
+print(f"  n droplets needs endTime ~ {t_flush*1e3:.0f} ms + (n+1) x period; "
+      f"at ~170 ms that is ~{t_flush + 9*0.170:.1f} s for n = 8.")
 
 DYE_PATCH = {'dye1_inlet': 0, 'dye2_inlet': 1, 'dye3_inlet': 2}
 VEC = {'dye1_inlet': lambda u: f"({u:.8f} 0 0)",      # +x, from the left

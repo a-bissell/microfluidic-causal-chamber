@@ -1,5 +1,38 @@
 # tjunction_3d_encoder — does the T-junction write the code faithfully?
 
+> **⛔ The passive-scalar readout below does not work, and the solver decision
+> recorded below is wrong.** Both were measured in 2D — see
+> [`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/).
+>
+> 1. **The dyes-as-passive-scalars method has a ~20% floor against a ~2%
+>    effect.** The loss is differential between laminae and the core-vs-wall
+>    signature changes sign between 40 µm and 60 µm cells. Mesh refinement
+>    cannot fix it (`dx^0.49`). Advecting on the water flux was tried and is
+>    worse.
+> 2. **`multiphaseInterFoam` drips.** The "does not drip" finding that
+>    justified the revert to `interFoam` was a false negative: the first
+>    pinch-off is at **205 ms**, just past where the original observation
+>    stopped. Restored unmodified from `f10ae84^` it gives 1240 µm slugs on a
+>    160 ms period — matching `interFoam` in this geometry — with phase-sum
+>    conserved to machine precision. The section *"Dyes are passive scalars"*
+>    below rests on a premise that measurement has since overturned.
+>
+> The geometry, the operating point and the droplet physics are unaffected and
+> still verified. The `scalarTransport` function objects also **work**, under
+> the ESI 2306 image — the `sha1` abort was the Ubuntu package, as suspected.
+>
+> **Multiphase fidelity is now confirmed.** The 2D null passes: core-vs-wall
+> **+0.0065 (0.47σ)** where 2D demands zero, against −0.019 (6.6σ) and
+> sign-flipping under passive scalars. Two caveats came with it — multiphase is
+> ~10× noisier per droplet (so a 3D bias measurement needs n ≈ 34, not ~9), and
+> a `c1−c3` asymmetry of −0.034 (2.3σ) that is *not* a measurement artifact and
+> may mean the two side legs are not physically equivalent (oil crosses the
+> junction one way, so dye1 lands at the slug's rear cap, dye3 at its front).
+> The 6.5 s run (n=34) settled `c1−c3`: it is a **real** −0.035 leg asymmetry,
+> so that validity gate is retired — but core-vs-wall averages it out and holds
+> the null at 0.9σ, so the readout is sound. The 3D run needs the gate removed
+> and n≈34, not a method rewrite.
+
 Digital twin of an **encoded-droplet** chip: three dye streams merge upstream
 of the T-junction, and the composition of each droplet is a *symbol*. This
 case exists to test one claim, in 3D, because 2D cannot answer it.
@@ -73,10 +106,27 @@ separate artifact from physics:
 | `c1 ≠ c3` | **Artifact.** The legs are mirror images; geometry guarantees equality. Suspect mesh, decomposition, or BCs. Invalidates the run. |
 | `c1 = c3` but `c2 > (c1+c3)/2` | **Real sampling bias.** The core lamina is over-sampled. This is the corner-gutter effect on the encoder. |
 
+> ❗ **The first row is wrong — confirmed by measurement.** A 6.5 s multiphase
+> 2D run (n = 34) gives `c1 − c3 = −0.035` at ~3σ, stationary across the run.
+> The legs are mirror images in *plan*, but oil crosses the junction in one
+> direction: `dye1` (upstream arm, facing the oncoming oil) is stripped more
+> than `dye3` (downstream, in the slug's lee), so `dye1 < dye3` systematically
+> (0.318 vs 0.354). `c1 = c3` is **not** geometrically guaranteed, so a nonzero
+> `c1 − c3` does not invalidate a run — this row's diagnostic is retired.
+>
+> The second row survives intact: core-vs-wall averages c1 and c3, so it is
+> immune to this asymmetry by construction, and it holds the 2D null at 0.9σ
+> (−0.008). **The gate was unnecessary for the quantity it guarded.** See
+> [`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/).
+
 The second combination cannot be produced by leg asymmetry — which is what
-makes it diagnostic rather than suggestive. And in 2D it must be ~0, because
-there are no corners. **The difference between the matched 2D and 3D runs is
-the result.**
+makes it diagnostic rather than suggestive, and which the measurement now
+*confirms* rather than assumes: the leg asymmetry is real (`c1 − c3 = −0.035`),
+yet core-vs-wall stays at zero in 2D (−0.008, 0.9σ) because averaging c1 and c3
+cancels it. In 2D core-vs-wall must be ~0, because there are no corners.
+**The difference between the matched 2D and 3D runs is the result** — and it is
+carried entirely by core-vs-wall, not by `c1 − c3`, which is now known to be a
+2D property of the geometry rather than a run-quality signal.
 
 This is why the case ships a `--two-d` flag rather than a separate 2D case:
 one generator, one flag, so dimensionality is the only thing that differs.
@@ -108,13 +158,22 @@ and bounded, so `Σ alpha.water_i` is an identity the solver *enforces* rather
 than a diagnostic to be checked, and composition carries no numerical leakage
 at all. That was built first, for exactly that reason.
 
-**It does not form droplets.** Three runs settled it:
+**It does not form droplets** — ❌ **this was wrong, see the banner at the top
+and [`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/).** The
+three runs below were read as settling it:
 
 | Geometry | Solver | Result |
 |---|---|---|
 | verified `tjunction_3d_mill` | `interFoam` | drips, L = 1400 µm |
 | **this case** | `interFoam` | **drips, L = 1240 µm** |
-| this case | `multiphaseInterFoam` | no pinch-off |
+| this case | `multiphaseInterFoam` | ~~no pinch-off~~ **drips, L = 1240 µm, T = 160 ms** |
+
+The third row was measured again on the restored case, unmodified: pinch-off at
+**205 ms**, then every 160 ms. The growth quoted below — thread past 2.5 mm at
+~27 mm/s — is real and reproduces exactly (26.4 mm/s between t = 0.15 and 0.20),
+but it is what the thread does *before* it necks, not evidence that it never
+does. Everything in the rest of this section follows from a premise that no
+longer holds.
 
 The middle row is the important one: this exact mesh, these exact velocity BCs
 and this exact contact angle reproduce the verified 800 µm 2D slug length of
@@ -131,6 +190,16 @@ an alpha field that only ever spans 0 to ⅓ and is correspondingly noisier, and
 interface compression acting between water phases that have no physical
 interface. Not chased further: **a working two-phase route is worth more than
 a conservation guarantee on a solver that will not drip.**
+
+> ❌ That trade was made against a solver that *does* drip, so it was never the
+> trade it looked like. The conservation guarantee was available all along, and
+> the two-phase route bought a ~20% measurement floor in exchange for nothing.
+> The per-pair curvature suspicion in the paragraph above is also unnecessary
+> to resolve — whatever its status, the slugs form on time and at the right
+> length. The one defect that survives scrutiny is `cAlpha`: it is a single
+> global value applied between *every* phase pair, including the three
+> water–water pairs that have no physical interface. Real, but not blocking —
+> `cAlpha 0` and `cAlpha 1` both drip.
 
 **The cost of coming back.** A passive scalar gets no MULES compression, so it
 is neither conserved nor bounded, and it leaks across the interface because
@@ -158,11 +227,13 @@ changes nothing the momentum equation can see.
 11+). `Allrun` detects which is present, so this case runs on both, like the
 rest of this directory.
 
-**One caveat on function objects.** The three dye scalars are
-`scalarTransport` function objects. These could **not** be verified locally:
-the Ubuntu 24.04 OpenFOAM package (`1912.200626-2build3`) aborts on *any*
-function object with `error in IOstream "sha1"` — a GCC-13 rebuild bug in
-`OSHA1stream`, unrelated to this case. The two-phase droplet physics beneath
+**One caveat on function objects — now resolved.** The three dye scalars are
+`scalarTransport` function objects. The Ubuntu 24.04 OpenFOAM package
+(`1912.200626-2build3`) aborts on *any* function object with
+`error in IOstream "sha1"` — a GCC-13 rebuild bug in `OSHA1stream`, unrelated
+to this case. **Under `opencfd/openfoam-default:2306` they load and advect
+correctly**, with the `libs` lines exactly as written; `check_dye_transport.py`
+passes all three tests. Use the ESI image and this is a non-issue. The two-phase droplet physics beneath
 them **is** verified in this exact mesh (1240 µm slug, above). `Allrun` greps
 `log.solver` for function-object errors and warns, because a run whose FOs
 failed still completes and still makes droplets — it just silently carries no
@@ -401,18 +472,28 @@ core-vs-wall bias smaller than it.
 | Mesh generation, 2D and 3D | ✅ `checkMesh` clean, all 5 inlet patches correct (200 faces each in 3D) |
 | Wall contact angle | ✅ corrected after a run jetted instead of dripping (pitfall above) |
 | **Droplet formation in this geometry** | ✅ **verified against `scaleup_2026-07` on all four observables — see table below** |
-| Solver choice | ✅ settled by measurement — `multiphaseInterFoam` does not drip, `interFoam` does |
+| Solver choice | ❌ **reopened** — `multiphaseInterFoam` drips after all (1240 µm, 160 ms); the revert rested on a false negative |
 | `analyze_encoder.py` statistics | ✅ validated against synthetic data with known injected bias and noise |
-| Dye `scalarTransport` function objects | ⚠️ **unverified** — blocked locally by a packaging bug, not by anything in this case |
-| Full 0.8 s 2D reference run end-to-end | ⏳ |
-| 3D run | ⏳ |
+| Dye `scalarTransport` function objects | ✅ **verified working** on ESI 2306 — [`encoder_dye_2026-08`](../results/encoder_dye_2026-08/) |
+| Startup cut and pinch-off extrapolation | ✅ fixed — the old cut was 2.5× too short |
+| Composition integral | ✅ masked, halo-independent in both solvers |
+| Passive-scalar dye field | ❌ **unusable** — ~20% floor, core-vs-wall changes sign with `dx` |
+| **Composition readout, multiphase** | ✅ **2D null passes** — core-vs-wall +0.0065 (0.47σ), closure exact |
+| Symmetry control (`c1 = c3`) | ❗ **retired** — real leg asymmetry −0.035 at 3σ (n=34); the gate was wrong, not the runs |
+| Per-droplet noise, multiphase | ⚠️ ~10× the passive figure — 3D bias run needs n ≈ 34 |
+| **3D run** | ⛔ **blocked** on pinning `c1 − c3`, not on a method rewrite |
 
-The droplet physics, the geometry, the operating point and the analysis
-statistics are all verified. The one unverified link is whether the three
-`scalarTransport` function objects load and transport correctly — which could
-not be tested here because this OpenFOAM build aborts on *any* function
-object. That is the first thing to confirm on the rig, and `Allrun` warns if
-it fails.
+The droplet physics, the geometry and the operating point are verified and
+unaffected. The passive-scalar *readout* failed — the three dyes are advected
+on the mixture flux with no coupling to `alpha`, so nothing enforces
+`Σ dye_i == alpha.water`, about a fifth of the dye ends up in the oil, and the
+measurement floor is ~20% against a ~2% effect. **`multiphaseInterFoam` fixes
+this at the source** — each phase is MULES-conserved, closure is exact, and the
+2D null passes (core-vs-wall +0.0065, 0.47σ). That is the correct route, and
+it needs no method rewrite: the solver was wrongly ruled out (see the banner).
+Routes that don't work — advecting on the water flux — and the one remaining
+untested fallback (`dye_i/alpha`) are laid out in
+[`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/).
 
 ### Verification against the chamber
 
