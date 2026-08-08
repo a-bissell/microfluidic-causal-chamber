@@ -212,3 +212,4 @@ Desktop.ini
 
 # Local development
 *.local
+simulation/openfoam/runs/
