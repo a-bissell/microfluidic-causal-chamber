@@ -272,7 +272,9 @@ Two caveats it also surfaced, both real:
 0.004, and slug length varies ±166 µm vs ±14 µm. The satellite shedding
 (below) is the likely sink — mass leaving the slug irregularly. Consequence
 for 3D: resolving a 2% corner bias at 3σ needs SE ≤ 0.0067, i.e. **n ≈ 34**,
-not the 8–9 the run plan assumed. That is `endTime` ≈ 6.5 s in 2D (~11 h) and
+not the 8–9 the run plan assumed. (The satellite shedding was suspected as the
+noise source; a `cAlpha 0.5` run later ruled that out — see the satellite
+section. The noise is intrinsic to formation.) That is `endTime` ≈ 6.5 s in 2D (~11 h) and
 days-scale serial in 3D. A longer 2D run (6.5 s) is under way to pin `c1−c3`.
 
 **`c1−c3` = −0.034 at 2.3σ, cut-independent (−0.034 vs −0.035).** Under the 3σ
@@ -334,10 +336,76 @@ statistic meaningless.
 
 Fixed with a physical filter: a slug spanning the channel cannot be shorter
 than one channel width (`--min-length-um`, default `w_main`). The satellite
-count is now reported. Whether the satellites are physical or an artifact of
-the global `cAlpha` sharpening the three water phases against one another is
-open — if the latter, suppressing them would cut the per-droplet noise and
-shorten every run after.
+count is now reported. Whether the satellites are physical or a `cAlpha`
+artifact — and whether suppressing them would cut the per-droplet noise — is
+settled below.
+
+## The satellites are a `cAlpha` artifact — but not the noise driver
+
+Two questions, because the second is the one that would have mattered for the
+3D budget: are the satellites physical, and if not, does removing them shrink
+the per-droplet noise that sets n ≈ 34?
+
+**They are a numerical artifact.** Four independent lines, three of them free
+from existing runs:
+
+1. **Rate scales with compression.** Satellites per slug over matched 0.4 s
+   runs: `cAlpha 1.0 → 1.93`, `0.5 → 0` (0.4 s only; see caveat), `0.0 → 0`.
+2. **Composition is single-lamina.** 97% of satellites are >0.6 one dye
+   (median dominant fraction 0.65); *none* are near-mixed. A physical capillary
+   satellite pinches off the slug tail and carries a mixed cross-sectional
+   slice (~⅓ each). A near-pure-dye body can only have been shed *at* a lamina
+   boundary — and those boundaries have no physical surface tension
+   (`transportProperties` sets `sigma = 0` between all water pairs); they pinch
+   only because the global `cAlpha` compresses them anyway.
+3. **Only the outer laminae, never the centre.** Dominant dye is always dye1 or
+   dye3 (wall-adjacent), never dye2 (centre). Generic water–water compression
+   would shed dye2 at both its boundaries too; that it never does points at the
+   wall-adjacent corner specifically.
+4. **~3 cells long** (120 µm at dx = 40 µm), right at the mesh floor — the size
+   of a numerical speck, not a resolved droplet.
+
+The colour renders (`results/.../` filmstrip, or the session artifact) show
+this directly: the detached bodies downstream of each slug are pure red or pure
+blue, never the mixed hue of the slug they came from.
+
+**`cAlpha` is a single global scalar** (`multiphaseMixture.C`:
+`phic = min(cAlpha*phic, max(phic))`) applied in a loop over *every* phase pair,
+so the three same-fluid water–water pairs get the same interface sharpening as
+the real water–oil interface. There is no per-pair knob. That is the mechanism.
+
+**But it is not the noise driver, so it does not help the 3D cost.** A matched
+2.0 s `cAlpha 0.5` run (byte-identical to the `cAlpha 1` baseline but for that
+line):
+
+| | `cAlpha 1`, 6.5 s (n=33) | `cAlpha 0.5`, 2.0 s (n=9) |
+|---|---|---|
+| satellites per slug | ~1.9 | **0.80** (≈60% fewer, *not* zero) |
+| between-droplet SD | 0.031 | **0.029** (unchanged) |
+| core-vs-wall | −0.002 ± 0.007 | +0.018 ± 0.015 |
+| `c1 − c3` | −0.029 | −0.056 |
+
+Cutting the satellite rate by 60% left the between-droplet scatter statistically
+unchanged (0.031 → 0.029). Had the satellites been the noise source, that much
+suppression would have moved it. **The per-droplet noise is intrinsic to
+multiphase formation** — the slug-to-slug variation in the vortex roll-up,
+visible in the renders — not the satellite shedding. So n ≈ 34 stands and the 3D
+run is not made cheaper by this.
+
+Two corrections this run forced:
+
+- The **0.4 s "zero satellites at `cAlpha 0.5`" was a small-sample fluke** (13
+  slugs). The full 2.0 s run gives 0.80/slug. `cAlpha 0.5` reduces the artifact,
+  it does not remove it.
+- **`cAlpha 0.5` is not worth adopting.** It does not help the noise, and it
+  mildly *worsens* the core-vs-wall null (+0.018 vs ~0) and enlarges the leg
+  asymmetry (−0.056 vs −0.029) — the more diffuse interface has small costs.
+  Keep `cAlpha 1` and let the length filter (`--min-length-um`) remove
+  satellites in analysis, where they are already handled.
+
+The prior expectation — recorded because it was stated before this run — was
+that satellites drove the noise and fixing them would shrink the 3D budget. The
+measurement says no.
 
 ## Fixes made to the analysis chain
 
@@ -440,6 +508,7 @@ arrived, and the sequence is instructive:
 | `droplet_dye_dx60.csv` | passive scalars, 2.0 s, 60 µm — 9 droplets |
 | `droplet_dye_multiphase_2s.csv` | **multiphase**, 2.0 s, 40 µm — 8 droplets, the null that passes |
 | `droplet_dye_multiphase_6p5s.csv` | **multiphase**, 6.5 s, 40 µm — 34 droplets, settles `c1−c3` and the noise |
+| `droplet_dye_multiphase_c05_2s.csv` | **multiphase `cAlpha 0.5`**, 2.0 s — the satellite-remedy test |
 
 All written by the corrected `extract_droplet_dye.py` (masked integral,
 satellite filter), so `V_nL` and the `c_i` are wet-cell quantities and are
@@ -465,6 +534,6 @@ directly.
 | Per-droplet noise, multiphase | ⚠️ ~10× the passive-scalar figure — 3D needs n ≈ 34 |
 | **`c1−c3` asymmetry** | ❗ **real** — −0.035 at 3σ over n=34, stationary. The validity gate is wrong, not the run |
 | Core-vs-wall vs the asymmetry | ✅ immune by construction (averages c1,c3) — null holds at 0.9σ |
-| Satellite droplets | ⚠️ filtered (`--min-length-um`); physical-vs-`cAlpha` artifact open |
+| Satellite droplets | ✅ `cAlpha` artifact (single-lamina, ~3 cells); filtered in analysis. **Not** the noise driver |
 | Core-vs-wall slow drift | ✅ **not real** — white noise + one coalescence droplet; within-scatter filter added |
 | **3D run** | ⚠️ unblocked in principle (readout works); gate must be removed first, and 3D needs n≈34 |
