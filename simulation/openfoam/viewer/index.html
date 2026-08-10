@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCC Simulation Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-head">
+    <div class="wrap">
+      <h1>MCC Simulation Viewer</h1>
+      <p class="sub">Droplet formation in the microfluidic causal chamber T-junction — 2D fields, the 3D interface, and swept droplet metrics.</p>
+    </div>
+  </header>
+
+  <nav class="tabs wrap" role="tablist">
+    <button class="tab is-active" data-tab="twod" role="tab">2D&nbsp;T-junction</button>
+    <button class="tab" data-tab="threed" role="tab">3D&nbsp;droplet</button>
+    <button class="tab" data-tab="metrics" role="tab">Metrics</button>
+  </nav>
+
+  <main class="wrap">
+    <!-- ------------------------------------------------------------ 2D --- -->
+    <section id="panel-twod" class="panel is-active">
+      <div class="stage">
+        <canvas id="field" width="900" height="360"></canvas>
+        <div class="colorbar" id="colorbar" aria-hidden="true"></div>
+      </div>
+
+      <div class="controls" id="twod-controls">
+        <button id="play" class="btn play" title="Play / pause">▶</button>
+        <input id="scrub" class="scrub" type="range" min="0" max="0" value="0" step="1">
+        <span id="tlabel" class="tlabel mono">— ms</span>
+        <label class="ctl">Speed
+          <select id="speed">
+            <option value="6">0.5×</option>
+            <option value="12" selected>1×</option>
+            <option value="24">2×</option>
+          </select>
+        </label>
+        <label class="ctl">Colour
+          <select id="cmap">
+            <option value="water" selected>water / oil</option>
+            <option value="viridis">viridis</option>
+            <option value="gray">grayscale</option>
+          </select>
+        </label>
+        <label class="ctl chk"><input type="checkbox" id="iface"> interface</label>
+        <label class="ctl chk"><input type="checkbox" id="smooth" checked> smooth</label>
+      </div>
+
+      <p class="cap" id="twod-cap">Loading field…</p>
+    </section>
+
+    <!-- ------------------------------------------------------------ 3D --- -->
+    <section id="panel-threed" class="panel">
+      <div class="stage">
+        <img id="gif" alt="3D droplet formation at the T-junction"
+             src="../results/mill3d800_2026-08/droplet_3d_800um.gif">
+      </div>
+      <p class="cap">
+        3D water isosurface — the phase necks at the junction and a droplet
+        pinches off into the oil-filled main channel. <code>interFoam</code> (VOF),
+        800&nbsp;µm milled-chip geometry, operating point derived from measured 2D
+        fluxes (q&nbsp;=&nbsp;0.29, Ca&nbsp;=&nbsp;0.032).
+      </p>
+      <p class="note">
+        This is a pre-rendered loop. An <em>interactive</em> orbitable isosurface
+        drops in here once a nightly 3D run is exported with
+        <code>export_web.py</code> (see the viewer README) — the 3D field data is
+        multi-gigabyte and lives outside the repo.
+      </p>
+    </section>
+
+    <!-- ------------------------------------------------------- metrics --- -->
+    <section id="panel-metrics" class="panel">
+      <div class="charts">
+        <figure>
+          <canvas id="chartL" width="440" height="320"></canvas>
+          <figcaption>Droplet length <span class="mono">L/w</span> vs flow-rate ratio <span class="mono">q = Q<sub>water</sub>/Q<sub>oil</sub></span>. Bigger dispersed fraction → longer plugs.</figcaption>
+        </figure>
+        <figure>
+          <canvas id="chartF" width="440" height="320"></canvas>
+          <figcaption>Formation frequency vs <span class="mono">q</span>. Curves are grouped by capillary number <span class="mono">Ca</span>.</figcaption>
+        </figure>
+      </div>
+      <p class="cap" id="metrics-cap">Velocity-driven sweep · <span class="mono">results/sweep_2026-07</span>.</p>
+    </section>
+  </main>
+
+  <footer class="site-foot wrap">
+    <span>Microfluidic Causal Chamber · OpenFOAM digital twin</span>
+    <span id="dataline" class="mono"></span>
+  </footer>
+
+  <script src="data/twod_frames.js"></script>
+  <script src="data/metrics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
