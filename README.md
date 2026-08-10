@@ -4,6 +4,11 @@ A **fluid-dynamics causal chamber**: a microfluidic T-junction droplet generator
 with a known, physics-based causal structure, built as a real-world testbed for
 causal-inference and AI methodology.
 
+<p align="center">
+  <img src="simulation/openfoam/results/mill3d800_2026-08/droplet_3d_800um.gif" alt="3D droplet formation at a T-junction: water necks at the junction and a droplet pinches off into the oil-filled main channel" width="620"><br>
+  <sub><em>3D droplet formation in the digital twin — the water phase necks at the junction and a droplet pinches off into the oil-filled main channel. OpenFOAM <code>interFoam</code> (VOF), 800&nbsp;µm milled-chip geometry, operating point derived from measured 2D fluxes (q&nbsp;=&nbsp;0.29, Ca&nbsp;=&nbsp;0.032).</em></sub>
+</p>
+
 This project extends the [**Causal Chambers**](https://github.com/juangamella/causal-chamber)
 of Gamella, Peters & Bühlmann ([Nature Machine Intelligence, 2025](https://www.nature.com/articles/s42256-024-00964-x))
 — the light and wind tunnels — into a new domain: two-phase flow and droplet
@@ -43,6 +48,11 @@ a T-junction faithfully writes dye "codes" (`c_i = Q_i / ΣQ`) into droplets.
 Verified results and write-ups live under [`simulation/openfoam/results/`](simulation/openfoam/results/).
 Long 3D runs are chunked overnight via the harness in
 [`simulation/openfoam/nightly/`](simulation/openfoam/nightly/README.md).
+
+<p align="center">
+  <img src="simulation/openfoam/droplet_verification.png" alt="Filmstrip of one 2D T-junction drip cycle from 0 to 50 ms" width="540"><br>
+  <sub><em>One full drip cycle in 2D (t&nbsp;=&nbsp;0–50&nbsp;ms): the dispersed phase grows at the junction, necks, pinches off, and advects downstream — the periodic droplet formation the causal graph is built on.</em></sub>
+</p>
 
 ### Hardware
 
