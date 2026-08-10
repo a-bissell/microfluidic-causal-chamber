@@ -36,7 +36,6 @@ P_disp → Q_disp ┘
 | **Simulation** — OpenFOAM digital twin (2D/3D T-junctions, milled-chip twins, the 3-dye "encoder") | [`simulation/openfoam/`](simulation/openfoam/) | **Built & verified.** The mature part of the project. |
 | **Hardware** — chip design, BOM, milling layouts, design plan | [`hardware/microfluidic/`](hardware/microfluidic/) | Design + fabrication planning. |
 | **Dataset** — variable definitions, protocol generators for the physical chamber | [`datasets/mf_tjunction_test_v1/`](datasets/mf_tjunction_test_v1/) | Scaffold (physical data not yet collected). |
-| **Station** — autonomous sim → mill → test → gap research-loop concept | [`station/`](station/README.md) | Design exploration. |
 
 ### Simulation
 
@@ -81,7 +80,7 @@ cd simulation/openfoam/tjunction_2d
 
 This repository carries two licenses, matching the split in the upstream project:
 
-- **Code** (`simulation/`, scripts, generators, `station/`) — [MIT](LICENSE).
+- **Code** (`simulation/`, scripts, generators) — [MIT](LICENSE).
 - **Datasets, hardware docs, and design material** — [CC BY 4.0](LICENSE-DATA-CC-BY-4.0.txt),
   the same license as the upstream Causal Chambers datasets.
 
