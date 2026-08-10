@@ -1,93 +1,103 @@
-# The Causal Chambers: Dataset Repository
+# Microfluidic Causal Chamber (MCC)
 
-[![PyPI version](https://badge.fury.io/py/causalchamber.svg)](https://badge.fury.io/py/causalchamber)
-[![Downloads](https://static.pepy.tech/badge/causalchamber)](https://pepy.tech/project/causalchamber)
-[![License: CC-BY 4.0](https://img.shields.io/static/v1.svg?logo=creativecommons&logoColor=white&label=License&message=CC-BY%204.0&color=yellow)](https://creativecommons.org/licenses/by/4.0/)
-[![Donate](https://img.shields.io/static/v1.svg?logo=Github%20Sponsors&label=donate&message=Github%20Sponsors&color=e874ff)](https://github.com/sponsors/juangamella)
+A **fluid-dynamics causal chamber**: a microfluidic T-junction droplet generator
+with a known, physics-based causal structure, built as a real-world testbed for
+causal-inference and AI methodology.
 
-
-![The Causal Chambers: (left) the wind tunnel, and (right) the light tunnel with the front panel removed to show its interior.](https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/the_chambers.jpg)
-
-This repository contains datasets collected from the _causal chambers_, the two devices described in the 2025 paper [*Causal chambers as a real-world physical testbed for AI methodology*](https://www.nature.com/articles/s42256-024-00964-x) by Juan L. Gamella, Jonas Peters and Peter Bühlmann. The repository is updated as we collect new datasets from the chambers.
-
-The datasets are publicly available through a permissive [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/). This means you are free to use, share and modify the datasets as long as you give appropriate credit and communicate changes. If you use the datasets in your scientific work, please consider citing:
+This project extends the [**Causal Chambers**](https://github.com/juangamella/causal-chamber)
+of Gamella, Peters & Bühlmann ([Nature Machine Intelligence, 2025](https://www.nature.com/articles/s42256-024-00964-x))
+— the light and wind tunnels — into a new domain: two-phase flow and droplet
+formation. Pressures drive flow rates drive droplet metrics, a causal graph with
+ground truth we can write down from first principles:
 
 ```
-﻿@article{gamella2025chamber,
-  author={Gamella, Juan L. and Peters, Jonas and B{\"u}hlmann, Peter},
-  title={Causal chambers as a real-world physical testbed for {AI} methodology},
-  journal={Nature Machine Intelligence},
-  doi={10.1038/s42256-024-00964-x},
-  year={2025},
+P_cont → Q_cont ┐
+                ├─► Junction ─► f_droplet, d_droplet, L_droplet, code c_i
+P_disp → Q_disp ┘
+```
+
+> **Relationship to the main project.** This is a standalone repository focused
+> solely on the microfluidic chamber. It began as a fork of the upstream
+> [`causal-chamber`](https://github.com/juangamella/causal-chamber) dataset
+> repo; the wind/light-tunnel datasets, hardware, and datasheets have been
+> removed and now live only upstream. See [Credits & upstream](#credits--upstream).
+
+---
+
+## What's here
+
+| Area | Path | Status |
+|---|---|---|
+| **Simulation** — OpenFOAM digital twin (2D/3D T-junctions, milled-chip twins, the 3-dye "encoder") | [`simulation/openfoam/`](simulation/openfoam/) | **Built & verified.** The mature part of the project. |
+| **Hardware** — chip design, BOM, milling layouts, design plan | [`hardware/microfluidic/`](hardware/microfluidic/) | Design + fabrication planning. |
+| **Dataset** — variable definitions, protocol generators for the physical chamber | [`datasets/mf_tjunction_test_v1/`](datasets/mf_tjunction_test_v1/) | Scaffold (physical data not yet collected). |
+| **Station** — autonomous sim → mill → test → gap research-loop concept | [`station/`](station/README.md) | Design exploration. |
+
+### Simulation
+
+The [OpenFOAM twin](simulation/openfoam/) is the most developed piece. It models
+oil–water droplet generation at a T-junction (`interFoam` / `multiphaseInterFoam`,
+Volume-of-Fluid with surface tension) and includes parametric sweeps, mesh
+convergence, milled-chip geometries, and the **encoder** study — testing whether
+a T-junction faithfully writes dye "codes" (`c_i = Q_i / ΣQ`) into droplets.
+Verified results and write-ups live under [`simulation/openfoam/results/`](simulation/openfoam/results/).
+Long 3D runs are chunked overnight via the harness in
+[`simulation/openfoam/nightly/`](simulation/openfoam/nightly/README.md).
+
+### Hardware
+
+[`hardware/microfluidic/`](hardware/microfluidic/) holds the chip design plan,
+bill of materials, milling layouts (`mill_chip_v1/v2.svg`), and a COMSOL
+simulation guide. The physical bench: a milled/laser-cut PMMA chip with
+~150–400 µm channels, electronic pressure controllers as actuators, and a
+high-speed camera plus pressure sensors as the observation stack.
+
+---
+
+## Quick start (simulation)
+
+Requires OpenFOAM v2306+ (native Linux, or the ESI Docker image on macOS/arm64 —
+see [`simulation/openfoam/README.md`](simulation/openfoam/README.md) and
+[`WINDOWS_SETUP.md`](simulation/openfoam/WINDOWS_SETUP.md)).
+
+```bash
+cd simulation/openfoam/tjunction_2d
+./Allrun          # mesh, initialise, solve
+```
+
+---
+
+## Licensing
+
+This repository carries two licenses, matching the split in the upstream project:
+
+- **Code** (`simulation/`, scripts, generators, `station/`) — [MIT](LICENSE).
+- **Datasets, hardware docs, and design material** — [CC BY 4.0](LICENSE-DATA-CC-BY-4.0.txt),
+  the same license as the upstream Causal Chambers datasets.
+
+---
+
+## Credits & upstream
+
+This project builds directly on the **Causal Chambers** by Juan L. Gamella,
+Jonas Peters, and Peter Bühlmann.
+
+- Main repository: https://github.com/juangamella/causal-chamber
+- Python package (`causalchamber`): https://github.com/juangamella/causal-chamber-package
+- Paper repository: https://github.com/juangamella/causal-chamber-paper
+- Project site: https://causalchamber.org
+
+If you use this work, please cite the original paper:
+
+```bibtex
+@article{gamella2025chamber,
+  author  = {Gamella, Juan L. and Peters, Jonas and B{\"u}hlmann, Peter},
+  title   = {Causal chambers as a real-world physical testbed for {AI} methodology},
+  journal = {Nature Machine Intelligence},
+  doi     = {10.1038/s42256-024-00964-x},
+  year    = {2025}
 }
 ```
 
-Here you can also find the resources to build the chambers (see [`hardware/`](hardware/)).
-
-**NEW**: See [`hardware/microfluidic/`](hardware/microfluidic/) for a comprehensive design plan for a **microfluidic T-junction causal chamber** - extending the causal chambers concept to fluid dynamics and droplet generation!
-
-The code to reproduce the case studies in the original paper can be found in the separate [paper repository](https://github.com/juangamella/causal-chamber-paper).
-
-See also the [separate repository](https://github.com/juangamella/causal-chamber-package) for the `causalchamber` [package](https://github.com/juangamella/causal-chamber-package), which allows you to directly download datasets to your Python code, load ground-truth graphs, access the remote API, and use the physical simulators of the chambers.
-
-## Need help?
-
-If you need help choosing the right dataset for your work, please write us an [email](mailto:juangamella@gmail.com).
-
-## Available datasets
-
-We are open to suggestions of additional experiments that may prove interesting; please reach out via [email](mailto:juangamella@gmail.com).
-
-Each dataset is described in detail in its corresponding page (click the dataset name), together with the download instructions. The chamber configurations are described in [Fig. 3](https://www.nature.com/articles/s42256-024-00964-x/figures/3) of the [manuscript](https://www.nature.com/articles/s42256-024-00964-x).
-
-| Dataset name | Notes | Chamber | Config. |
-|--------:|:--------------------------------|:--------:|:--------:|
-| [lt_crl_benchmark_v1](datasets/lt_crl_benchmark_v1/) | Datasets for the 2025 benchmark paper "*Sanity Checking Causal Representation Learning on a Simple Real-World System*" by Juan L. Gamella\*, Simon Bing\*, and Jakob Runge. | Light tunnel | camera |
-| [lt_camera_walks_v1](datasets/lt_camera_walks_v1/) | Image data for the ICA case study (task d3, Fig. 6). | Light tunnel | camera |
-| [lt_color_regression_v1](datasets/lt_color_regression_v1/) | Image data for task b2 in the OOD case study (Fig. 5) | Light tunnel | camera |
-| [lt_interventions_standard_v1](datasets/lt_interventions_standard_v1/) | Observational and interventional data from the light tunnel, used for the causal discovery case study in Fig. 5. | Light tunnel | standard |
-| [lt_walks_v1](datasets/lt_walks_v1/) | Random and deterministic walks of the light-tunnel actuators. Used in the ICA case study (task d1), Fig. 6. | Light tunnel | standard |
-| [wt_walks_v1](datasets/wt_walks_v1/) | Random and deterministic walks of the wind-tunnel actuators. Used in the causal discovery (task a3) and ICA (task d2) case studies. | Wind tunnel | standard |
-| [lt_malus_v1](datasets/lt_malus_v1/) | Measurements of light intensity displaying Malus' law, used in the symbolic regression task in Fig. 6e. | Light tunnel | standard |
-| [wt_bernoulli_v1](datasets/wt_bernoulli_v1/) | Measurements of air pressure displaying Bernoulli's principle, used in the symbolic regression task in Fig. 6e. | Wind tunnel | standard |
-| [wt_changepoints_v1](datasets/wt_changepoints_v1/) | Used for the change point detection case study in Fig. 5. | Wind tunnel | standard |
-| [wt_intake_impulse_v1](datasets/wt_intake_impulse_v1/) | Barometric pressure curves used in task 2c, Fig. 5. | Wind tunnel | standard |
-| [wt_pressure_control_v1](datasets/wt_pressure_control_v1/) | Data from the pressure-control configuration of the wind tunnel. | Wind tunnel | pressure-control |
-| [lt_test_v1](datasets/lt_test_v1/) | Experiments to characterize some of the physical effects of the light tunnel. Shown in figures 7-15 of the manuscript. | Light tunnel | standard |
-| [wt_test_v1](datasets/wt_test_v1/) | Experiments to characterize some of the physical effects of the wind tunnel. Shown in figures 7-15 of the manuscript. | Wind tunnel | standard |
-| [lt_camera_test_v1](datasets/lt_camera_test_v1/) | Experiments to characterize some of the physical effects of the camera system in the light tunnel. | Light tunnel | camera |
-| [wt_validate_v1](datasets/wt_validate_v1/) | Randomized control experiments to validate the causal ground-truth graph of the wind tunnel in its _standard_ configuration (appendix V of the manuscript). | Wind tunnel | standard |
-| [wt_pc_validate_v1](datasets/wt_pc_validate_v1/) | Randomized control experiments to validate the causal ground-truth graph of the wind tunnel in its _pressure-control_ configuration (appendix V of the manuscript). | Wind tunnel | pressure-control |
-| [lt_validate_v1](datasets/lt_validate_v1/) | Randomized control experiments to validate the causal ground-truth graphs of the light tunnel in its _standard_ configuration (appendix V of the manuscript). | Light tunnel | standard |
-| [lt_camera_validate_v1](datasets/lt_camera_validate_v1/) | Randomized control experiments to validate the causal ground-truth graphs of the light tunnel in its _camera_ configuration (appendix V of the manuscript). | Light tunnel | standard |
-| [lt_camera_v1](datasets/lt_camera_v1/) | Image datasets where the light-tunnel actuators are sampled from different distributions and structural causal models. | Light tunnel | camera |
-
-## Downloading the datasets
-
-If you use Python, you can directly import a dataset into your code through the `causalchamber` [package](https://github.com/juangamella/causal-chamber-package). For example, you can load the [`lt_camera_test_v1`](https://github.com/juangamella/causal-chamber/tree/main/datasets/lt_camera_test_v1) image dataset as follows:
-
-```python
-import causalchamber.datasets as datasets
-
-# Download the dataset and store it, e.g., in the current directory
-dataset = datasets.Dataset(name='lt_camera_test_v1', root='./', download=True)
-
-# Select an experiment and load the observations and images
-experiment = dataset.get_experiment(name='palette')
-
-observations = experiment.as_pandas_dataframe()
-images = experiment.as_image_array(size='200')
-```
-
-See each dataset page for a tailored example (e.g., [here](datasets/lt_test_v1/)), and the package [repository](https://github.com/juangamella/causal-chamber-package) for more details & documentation.
-
-You can also download a `.zip` file with all the data, including the images at different resolutions. The link and checksum (to verify integrity) are available on the dataset pages (click on the dataset name in the table above).
-
-## Licenses
-
-All images and `.csv` files in the datasets are licensed under a [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/). A copy of the license can be found in [LICENSE.txt](LICENSE.txt).
-
-## Contributing
-
-If you would like to make a (highly welcome!) contribution towards the costs of running this repository, you can do so as a [Github sponsor](https://github.com/sponsors/juangamella).
-
+The microfluidic extension — design, simulation, and analysis in this repository
+— is developed by Alexander Bissell and contributors.

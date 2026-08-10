@@ -1,3 +1,0 @@
-numpy>=2.2.3
-pandas>=2.2.1
-sempler>=0.2.13
