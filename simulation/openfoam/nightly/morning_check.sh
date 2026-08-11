@@ -13,10 +13,21 @@ echo "=============================================================="
 echo " encoder_3d_mp — morning check   (latest checkpoint t = ${T} s)"
 echo "=============================================================="
 
-# 1. Reconstruct only the new parallel times, then convert to legacy VTK.
-echo "[check] reconstructing new times + foamToVTK (this can take a few min)..."
-of_exec 'reconstructPar -newTimes > log.reconstruct 2>&1 || true
-         foamToVTK -legacy -noZero > log.foamToVTK 2>&1 || foamToVTK -legacy > log.foamToVTK 2>&1 || true'
+# 1. Reconstruct + convert, ECONOMICALLY. The extractor needs only the three
+#    water-phase fields, and only the post-settle window -- so restrict to those.
+#    Reconstructing all 6 fields over all times is what filled a near-full disk
+#    at t=2.04 s. A disk guard aborts rather than repeating that.
+FIELDS='(alpha.water1 alpha.water2 alpha.water3)'
+SETTLE_FROM='0.35'                                  # just before the ~0.386 s cut
+FREE_G=$(df -g "$CASE_DIR" | awk 'NR==2{print $4}')
+echo "[check] ${FREE_G}G free. Reconstructing 3 fields, t>=${SETTLE_FROM}, + foamToVTK..."
+if [ "${FREE_G:-0}" -lt 3 ]; then
+  echo "[check] ABORT: <3 GB free — refusing to reconstruct and risk filling the disk."
+  echo "        Free space (or move the run to external storage) and re-run."
+  exit 2
+fi
+of_exec "reconstructPar -fields '$FIELDS' -time '${SETTLE_FROM}:' -newTimes > log.reconstruct 2>&1 || true
+         foamToVTK -legacy -fields '$FIELDS' -time '${SETTLE_FROM}:' > log.foamToVTK 2>&1 || true"
 
 # 2. Extract droplets (writes droplet_dye.csv). Tolerate "too early / none yet".
 echo "[check] extracting droplets..."
@@ -81,6 +92,13 @@ else:
     sys.exit(0)
 PY
 rc=$?
+
+# Reclaim the reconstructed root time-dirs (regenerable from the processor
+# checkpoints). Keeps the run dir small on a tight disk; VTK + CSV are kept for
+# inspection, processor checkpoints are untouched so resume still works.
+( cd "$CASE_DIR" && for d in [0-9]*; do [ "$d" != "0" ] && [ -d "$d" ] && rm -rf "$d"; done ) 2>/dev/null
+
 echo "--------------------------------------------------------------"
+echo "free after cleanup: $(df -g "$CASE_DIR" | awk 'NR==2{print $4}')G"
 [ $rc -eq 10 ] && echo "verdict: DECISIVE — stop the run." || echo "verdict: keep running another night."
 exit $rc
