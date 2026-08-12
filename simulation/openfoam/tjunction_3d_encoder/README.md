@@ -1,46 +1,5 @@
 # tjunction_3d_encoder — does the T-junction write the code faithfully?
 
-> **⛔ The passive-scalar readout below does not work, and the solver decision
-> recorded below is wrong.** Both were measured in 2D — see
-> [`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/).
->
-> 1. **The dyes-as-passive-scalars method has a ~20% floor against a ~2%
->    effect.** The loss is differential between laminae and the core-vs-wall
->    signature changes sign between 40 µm and 60 µm cells. Mesh refinement
->    cannot fix it (`dx^0.49`). Advecting on the water flux was tried and is
->    worse.
-> 2. **`multiphaseInterFoam` drips.** The "does not drip" finding that
->    justified the revert to `interFoam` was a false negative: the first
->    pinch-off is at **205 ms**, just past where the original observation
->    stopped. Restored unmodified from `f10ae84^` it gives 1240 µm slugs on a
->    160 ms period — matching `interFoam` in this geometry — with phase-sum
->    conserved to machine precision. The section *"Dyes are passive scalars"*
->    below rests on a premise that measurement has since overturned.
->
-> The geometry, the operating point and the droplet physics are unaffected and
-> still verified. The `scalarTransport` function objects also **work**, under
-> the ESI 2306 image — the `sha1` abort was the Ubuntu package, as suspected.
->
-> **Multiphase fidelity is now confirmed.** The 2D null passes: core-vs-wall
-> **+0.0065 (0.47σ)** where 2D demands zero, against −0.019 (6.6σ) and
-> sign-flipping under passive scalars. Two caveats came with it — multiphase is
-> ~10× noisier per droplet (so a 3D bias measurement needs n ≈ 34, not ~9), and
-> a `c1−c3` asymmetry of −0.034 (2.3σ) that is *not* a measurement artifact and
-> may mean the two side legs are not physically equivalent (oil crosses the
-> junction one way, so dye1 lands at the slug's rear cap, dye3 at its front).
-> The 6.5 s run (n=34) settled `c1−c3`: it is a **real** −0.035 leg asymmetry,
-> so that validity gate is retired — but core-vs-wall averages it out and holds
-> the null at 0.9σ, so the readout is sound.
->
-> **The 3D run is now done** (`../runs/encoder_3d_mp/`, 66k cells,
-> multiphaseInterFoam, run overnight in chunks via `../nightly/`). Result at
-> n=23: **core-vs-wall = −0.007 ± 0.009, consistent with zero and with the 2D
-> null — no significant corner bias.** The encoder's mixing-insensitivity holds
-> in 3D; a droplet's code equals the commanded flow fraction, corners and all.
-> Not a formal 3σ bound (that needs n≈40, ~2 more nights; the checkpoint is
-> intact if wanted), but the effect is clearly small and trending to zero. See
-> [`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/) → *The 3D run*.
-
 Digital twin of an **encoded-droplet** chip: three dye streams merge upstream
 of the T-junction, and the composition of each droplet is a *symbol*. This
 case exists to test one claim, in 3D, because 2D cannot answer it.
