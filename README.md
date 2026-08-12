@@ -26,6 +26,12 @@ Here you can also find the resources to build the chambers (see [`hardware/`](ha
 
 **NEW**: See [`hardware/microfluidic/`](hardware/microfluidic/) for a comprehensive design plan for a **microfluidic T-junction causal chamber** - extending the causal chambers concept to fluid dynamics and droplet generation!
 
+<p align="center">
+  <img src="simulation/openfoam/results/encoder_dye_2026-08/coded_droplet_3d.gif" width="640" alt="A coded droplet forming in a 3D T-junction OpenFOAM simulation, its surface coloured by dye composition (red/green/blue for the three inlet streams).">
+  <br>
+  <em>Encoded-droplet twin (<a href="simulation/openfoam/tjunction_3d_encoder/">tjunction_3d_encoder</a>): three dye streams merge and are chopped into droplets whose composition is a symbol. The 3D interface is coloured by composition (R/G/B = the three dyes). 2D verification and the 3D corner-bias result are written up in <a href="simulation/openfoam/results/encoder_dye_2026-08/">results/encoder_dye_2026-08</a>.</em>
+</p>
+
 The code to reproduce the case studies in the original paper can be found in the separate [paper repository](https://github.com/juangamella/causal-chamber-paper).
 
 See also the [separate repository](https://github.com/juangamella/causal-chamber-package) for the `causalchamber` [package](https://github.com/juangamella/causal-chamber-package), which allows you to directly download datasets to your Python code, load ground-truth graphs, access the remote API, and use the physical simulators of the chambers.
