@@ -409,35 +409,19 @@ The `extract_droplets.py` script outputs CSV compatible with the causal chamber 
   the Garstecki scaling law with α = 1.24, R² = 0.94, plus pressure-driven
   pilots mapping the capillary entry-pressure threshold.
 
-## Web Interface
+## Viewer
 
-A modern web application is available for controlling simulations through a browser interface.
-
-### Features
-
-- **Parameter Controls**: Easy-to-use sliders for pressure and timing settings
-- **Real-time Monitoring**: Live progress updates via WebSocket
-- **3D Visualization**: Interactive WebGL droplet viewer
-- **Results Dashboard**: Charts for droplet frequency, size distribution, etc.
-- **Parametric Sweeps**: Automate multiple simulations across parameter ranges
-
-### Quick Start
+A dependency-free static viewer for the results lives in [`viewer/`](viewer/):
+a 2D `alpha.water` playback of a drip cycle, the 3D droplet isosurface, and
+swept droplet metrics. No backend, no build step — serve the folder and open it:
 
 ```bash
-# Navigate to webapp directory
-cd webapp
-
-# Start both backend and frontend (Linux/WSL)
-chmod +x start_webapp.sh
-./start_webapp.sh
-
-# Or on Windows
-start_webapp.bat
+python3 -m http.server 8000   # from this directory
+# open http://localhost:8000/viewer/
 ```
 
-Access the interface at `http://localhost:5173`
-
-See `webapp/README.md` for detailed setup instructions.
+Regenerate its data from a run with [`viewer/export_web.py`](viewer/export_web.py);
+see [`viewer/README.md`](viewer/README.md).
 
 ## Comparison: OpenFOAM vs COMSOL
 

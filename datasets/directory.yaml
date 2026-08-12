@@ -1,97 +1,15 @@
-last_updated: 2025-02-25
+last_updated: 2026-08-10
+# Download manifest for the causalchamber Python package.
+#
+# This is the Microfluidic Causal Chamber (MCC) repository. The upstream
+# wind- and light-tunnel datasets live in the main Causal Chambers repo:
+#   https://github.com/juangamella/causal-chamber
+#
+# The MCC dataset below is not yet published (no hosted ZIP). Generators and
+# variable definitions are tracked in-repo under datasets/mf_tjunction_test_v1/.
 datasets:
-  wt_changepoints_v1:
-    chamber: "wt"
+  mf_tjunction_test_v1:
+    chamber: "mf"
     image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_changepoints_v1.zip"
-    md5: "7e9f26d192674f2aaa6481f4415007eb"
-  wt_walks_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_walks_v1.zip"
-    md5: "19bb4e92cbe0b8dff49299b9b509ac36"
-  lt_camera_walks_v1:
-    chamber: "lt"
-    image: True
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_camera_walks_v1.zip"
-    md5: "097f291680a9a57d2c62bd2bc2b78fce"
-  lt_walks_v1:
-    chamber: "lt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_walks_v1.zip"
-    md5: "dcad019186661a56de7a2d1db97fc2f0"
-  lt_test_v1:
-    chamber: "lt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_test_v1.zip"
-    md5: "16755c741755c795f609d2e42ea9ee18"
-  wt_intake_impulse_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_intake_impulse_v1.zip"
-    md5: "8b7a0e587d3e9a804b380d96f14a1b12"
-  lt_color_regression_v1:
-    chamber: "lt"
-    image: True
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_color_regression_v1.zip"
-    md5: "8e2742277e7ad978301eb830148e1d40"
-  lt_interventions_standard_v1:
-    chamber: "lt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_interventions_standard_v1.zip"
-    md5: "476664d024f88e8b7640998bb5e9ee33"
-  lt_malus_v1:
-    chamber: "lt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_malus_v1.zip"
-    md5: "cc49b95d85410e0b5ea3bcd1479428e3"
-  lt_validate_v1:
-    chamber: "lt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_validate_v1.zip"
-    md5: "0ef64de36bf8fdfff3df539cadf460ab"
-  lt_camera_validate_v1:
-    chamber: "lt"
-    image: True
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_camera_validate_v1.zip"
-    md5: "d347d70f1a7c7444cacbf17e259aa068"
-  lt_camera_test_v1:
-    chamber: "lt"
-    image: True
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_camera_test_v1.zip"
-    md5: "f31537ce8db74c537ab2f9ffa2f6f1f9"
-  wt_validate_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_validate_v1.zip"
-    md5: "bde214eb50abc801307bf7d4aadcafc9"
-  wt_pc_validate_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_pc_validate_v1.zip"
-    md5: "3763de7a1a2715d5789d6e95464249c0"
-  wt_bernoulli_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_bernoulli_v1.zip"
-    md5: "00d6abbdf42ed953ca94dc107067ea56"
-  wt_test_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_test_v1.zip"
-    md5: "5eed621f5b54e431c4442fc9cc947db6"
-  wt_pressure_control_v1:
-    chamber: "wt"
-    image: False
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/wt_pressure_control_v1.zip"
-    md5: "8cb1c9bf19cedc5baea7a9c15e54af6a"
-  lt_camera_v1:
-    chamber: "lt"
-    image: True
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_camera_v1.zip"
-    md5: "9f4b52efdb1c08bd5ab615b6edc8ed95"
-  lt_crl_benchmark_v1:
-    chamber: "lt"
-    image: True
-    url: "https://causalchamber.s3.eu-central-1.amazonaws.com/downloadables/lt_crl_benchmark_v1.zip"
-    md5: "8ec492afffd0142abd70b1fa7082b104"
+    url: "TBD"   # not yet published
+    md5: "TBD"
