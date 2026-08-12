@@ -124,26 +124,6 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
 
 ### 2.2 Fluid Actuation System
 
-> **Revised 2026-08.** This section originally specified electronic pressure
-> controllers (Fluigent/Elveflow class) on a 0–200 kPa range, fed by a
-> compressor or N₂ cylinder, at $1,500–3,000. That followed from the
-> original 100–200 µm geometry. **The 600–800 µm scale-up in §2.1 changed
-> the requirement by more than an order of magnitude and the section had not
-> caught up.** Drive pressure scales as 1/w², so the whole operating point
-> now sits in hydrostatic reach:
->
-> | Channel | P_cont | P_disp | as a water column |
-> |---|---|---|---|
-> | 400 µm | 3900 Pa | 1800 Pa | 40 / 18 cm |
-> | 600 µm | 1730 Pa | 830 Pa | 17.6 / 8.5 cm |
-> | **800 µm** | **980 Pa** | **490 Pa** | **10.0 / 5.0 cm** |
->
-> Measured, not designed — see
-> [`results/scaleup_2026-07`](../../simulation/openfoam/results/scaleup_2026-07/).
-> At 150 µm you needed tens of kPa, i.e. metres of water, and an electronic
-> regulator was the only option. At 800 µm the entire operating point is a
-> bottle 10 cm above the chip.
-
 **Architecture: pressure-driven, hydrostatic, motorised.**
 
 Pressure control (rather than syringe pumps) is still the right default, and
