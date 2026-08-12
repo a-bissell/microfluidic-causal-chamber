@@ -53,10 +53,11 @@ Long 3D runs are chunked overnight via the harness in
 ### Hardware
 
 [`hardware/microfluidic/`](hardware/microfluidic/) holds the chip design plan,
-bill of materials, milling layouts (`mill_chip_v1/v2.svg`), and a COMSOL
-simulation guide. The physical bench: a milled/laser-cut PMMA chip with
-~150–400 µm channels, electronic pressure controllers as actuators, and a
-high-speed camera plus pressure sensors as the observation stack.
+bill of materials, and milling layouts (`mill_chip_v1/v2.svg`). The physical
+bench: a milled/laser-cut PMMA chip with 600–800 µm channels (milling-robust;
+see [`results/scaleup_2026-07`](simulation/openfoam/results/scaleup_2026-07/)),
+electronic pressure controllers as actuators, and a high-speed camera plus
+pressure sensors as the observation stack.
 
 ---
 
