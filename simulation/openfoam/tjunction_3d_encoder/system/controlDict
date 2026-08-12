@@ -1,0 +1,141 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| Encoder twin: 3-dye cross-merge -> T-junction.                              |
+| Generated companion files come from gen_blockmesh.py; this one is hand-     |
+| maintained. ESI runs interFoam directly; OpenFOAM.org 11+ runs foamRun and  |
+| reads `solver`. Allrun picks whichever is present, so both entries stay.    |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     foamRun;
+
+solver          incompressibleVoF;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+// The encoder needs LONGER runs than the plain droplet cases. Water leaving
+// the merge node takes ~207 ms to reach the junction at the default 1200 um
+// leg, so droplets formed before that carry the seeded initial composition,
+// not inlet-derived laminated water, and cannot answer the sampling question.
+// At the corrected 800 um 3D rate of 9.09 Hz (110 ms period, see
+// results/mill3d800_2026-08) 0.8 s gives ~7 droplets of which ~5 are
+// inlet-derived. Do not shorten this without also shortening --l-leg.
+endTime         0.8;
+
+deltaT          1e-7;
+
+writeControl    adjustableRunTime;
+
+// 5 ms => ~22 writes per droplet period at 9.09 Hz. Enough to resolve the
+// formation cycle and to catch each droplet well clear of the junction.
+writeInterval   0.005;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  8;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   8;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+
+maxCo           0.5;
+
+maxAlphaCo      0.5;
+
+// Brackbill capillary limit dt < sqrt(rho_avg*dx^3 / (2*pi*sigma)):
+//   dx = 40 um, rho_avg = 980, sigma = 0.03  ->  1.82e-5 s
+// interFoam does not enforce this, and at these low velocities the Courant
+// limit alone would permit dt ~ 1e-4, where parasitic currents destroy the
+// interface. 1e-5 sits at ~55% of the limit.
+// tjunction_3d_mill carries 5e-6, but that value was tuned for 20 um cells at
+// the 400 um chip and inherited unchanged by its 800 um runs -- conservative
+// by inheritance rather than by derivation. 1e-5 keeps real margin while
+// halving the cost. The 2D reference run is the check: it must reproduce the
+// verified 800 um 2D slug length of ~1240 um at ~175 ms period. If it does
+// not, drop to 5e-6 before suspecting anything else.
+// The limit goes as dx^1.5, so a --dx 20 run must tighten to ~5e-6 or the
+// interface will corrupt.
+maxDeltaT       1e-5;
+
+// ---------------------------------------------------------------------------
+// The three dye scalars.
+//
+// dye_i is the volume fraction of water-of-type-i, so by construction
+//     sum_i dye_i == alpha.water   everywhere, always.
+//
+// scalarTransport advects these on interFoam's mixture flux phi WITHOUT the
+// MULES compression alpha.water gets, so that identity is not numerically
+// enforced -- which makes its violation a free, pointwise measure of this
+// method's error. extract_droplet_dye.py integrates it per droplet and
+// analyze_encoder.py reports it; if it is not small, the compositions are not
+// trustworthy. See gen_blockmesh.py for why the conservative alternative
+// (multiphaseInterFoam, dyes as real phases) was tried and abandoned.
+//
+// D = 0: pure advection. Real dye diffusivity ~5e-10 m2/s gives a diffusion
+// length sqrt(2Dt) ~ 14 um over the 207 ms transit -- negligible against an
+// 800 um channel and far below the scheme's numerical diffusion, so setting
+// the physical value would be false precision.
+//
+// NOTE these function objects could NOT be verified locally: the Ubuntu 24.04
+// OpenFOAM package (1912.200626-2build3) aborts on ANY function object with
+// 'error in IOstream "sha1"', a GCC-13 rebuild bug in OSHA1stream unrelated to
+// this case. The two-phase droplet physics beneath them IS verified in this
+// exact mesh. Check the phase-closure diagnostic on the first real run.
+// ---------------------------------------------------------------------------
+functions
+{
+    dye1Transport
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           dye1;
+        schemesField    dye;        // all three share div(phi,dye)
+        D               0;
+        writeControl    writeTime;
+    }
+
+    dye2Transport
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           dye2;
+        schemesField    dye;
+        D               0;
+        writeControl    writeTime;
+    }
+
+    dye3Transport
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           dye3;
+        schemesField    dye;
+        D               0;
+        writeControl    writeTime;
+    }
+}
+
+// Per-inlet volumetric flux comes from scripts/extract_inlet_flux.py (Newell
+// method on the VTK output) -- the code path the cyclicity result used:
+//   python3 ../scripts/extract_inlet_flux.py <case> \
+//       --patches oil_inlet dye1_inlet dye2_inlet dye3_inlet
+
+// ************************************************************************* //

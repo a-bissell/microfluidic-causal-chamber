@@ -1,0 +1,16 @@
+{
+  "w_main_um": 800.0,
+  "dx_um": 40.0,
+  "two_d": false,
+  "depth_modelled_um": 400.0,
+  "x_junction_um": [2000.0, 2800.0],
+  "x_outlet_um": [2800.0, 6800.0],
+  "y_channel_um": [0.0, 800.0],
+  "l_leg_um": 1200.0,
+  "commanded_c": [0.33333333, 0.33333333, 0.33333333],
+  "q_water_uL_s": 3.706,
+  "q_oil_uL_s": 12.694,
+  "u_leg_m_s": 0.00579063,
+  "t_transit_s": 0.20723152,
+  "n_cells": 68000
+}

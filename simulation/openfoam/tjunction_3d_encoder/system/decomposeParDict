@@ -1,0 +1,43 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| Encoder twin — domain decomposition for parallel runs.                      |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      decomposeParDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+numberOfSubdomains  4;
+
+// `simple` rather than the `scotch` the other cases use. Scotch gives better
+// load balance on this branched geometry, but it is not linked in every
+// OpenFOAM build -- the Ubuntu 24.04 package ships a stub that aborts with
+// "dummyScotchDecomp", which fails the run AFTER blockMesh and setFields have
+// already succeeded and therefore looks like a solver problem. `simple` is
+// always available and costs little here: the mesh is a thin branched strip,
+// so a 2x2 geometric split is close to what scotch would choose anyway.
+//
+// If your build has scotch, switching back is a strict improvement:
+//     method scotch;
+// and delete the coeffs below.
+method              simple;
+
+coeffs
+{
+    // Split x and y, never z: the 3D domain is only half-depth (10 cells at
+    // dx = w/20) and splitting it would put processor boundaries through the
+    // corner gutters -- the exact flow feature this case exists to resolve.
+    // n must multiply to numberOfSubdomains.
+    n               (2 2 1);
+    delta           0.001;
+}
+
+// Raising core count: keep the z-component 1 and scale x first, since the
+// domain is ~8x longer in x than y.
+//   8 cores  -> numberOfSubdomains 8;  n (4 2 1)
+//   16 cores -> numberOfSubdomains 16; n (8 2 1)
+
+// ************************************************************************* //

@@ -212,6 +212,4 @@ Desktop.ini
 
 # Local development
 *.local
-
-# OpenFOAM run scratch (multi-GB checkpoints; regenerated locally)
 simulation/openfoam/runs/

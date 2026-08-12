@@ -31,11 +31,13 @@ P_disp → Q_disp ┘
 
 ## What's here
 
-| Area | Path | Status |
-|---|---|---|
-| **Simulation** — OpenFOAM digital twin (2D/3D T-junctions, milled-chip twins, the 3-dye "encoder") | [`simulation/openfoam/`](simulation/openfoam/) | **Built & verified.** The mature part of the project. |
-| **Hardware** — chip design, BOM, milling layouts, design plan | [`hardware/microfluidic/`](hardware/microfluidic/) | Design + fabrication planning. |
-| **Dataset** — variable definitions, protocol generators for the physical chamber | [`datasets/mf_tjunction_test_v1/`](datasets/mf_tjunction_test_v1/) | Scaffold (physical data not yet collected). |
+<p align="center">
+  <img src="simulation/openfoam/results/encoder_dye_2026-08/coded_droplet_3d.gif" width="640" alt="A coded droplet forming in a 3D T-junction OpenFOAM simulation, its surface coloured by dye composition (red/green/blue for the three inlet streams).">
+  <br>
+  <em>Encoded-droplet twin (<a href="simulation/openfoam/tjunction_3d_encoder/">tjunction_3d_encoder</a>): three dye streams merge and are chopped into droplets whose composition is a symbol. The 3D interface is coloured by composition (R/G/B = the three dyes). 2D verification and the 3D corner-bias result are written up in <a href="simulation/openfoam/results/encoder_dye_2026-08/">results/encoder_dye_2026-08</a>.</em>
+</p>
+
+The code to reproduce the case studies in the original paper can be found in the separate [paper repository](https://github.com/juangamella/causal-chamber-paper).
 
 ### Simulation
 

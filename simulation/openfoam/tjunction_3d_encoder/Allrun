@@ -1,0 +1,109 @@
+#!/bin/bash
+# Encoder twin: mesh -> initialise -> solve -> VTK.
+#
+# Usage:
+#   ./Allrun                 # serial
+#   ./Allrun 8               # parallel on 8 ranks (edit decomposeParDict to match)
+#
+# The mesh is NOT generated here. gen_blockmesh.py takes the arguments that
+# define the experiment (--w-main, --two-d, --c), and burying it in this script
+# would make it too easy to solve a geometry you did not intend. Run it first:
+#
+#   python3 gen_blockmesh.py --w-main 800            # 3D
+#   python3 gen_blockmesh.py --w-main 800 --two-d    # matched 2D baseline
+cd "${0%/*}" || exit 1
+set -o pipefail
+
+NP=${1:-1}
+
+for BASHRC in /opt/openfoam*/etc/bashrc \
+              /usr/lib/openfoam/openfoam*/etc/bashrc \
+              /usr/share/openfoam/etc/bashrc; do
+    [ -f "$BASHRC" ] && { . "$BASHRC"; break; }
+done
+if [ -z "$WM_PROJECT_DIR" ]; then
+    echo "ERROR: OpenFOAM not found."
+    exit 1
+fi
+# The Ubuntu package leaves FOAM_ETC unset, which makes setFields and the
+# solver fail with a misleading 'Could not find mandatory etc entry' long
+# after the mesh has been built successfully.
+export FOAM_ETC="${FOAM_ETC:-$WM_PROJECT_DIR/etc}"
+echo "OpenFOAM: $WM_PROJECT_DIR"
+
+# ESI ships interFoam; OpenFOAM.org 11+ replaced it with foamRun + the
+# `solver` entry in controlDict. Both are supported.
+if command -v interFoam >/dev/null 2>&1; then
+    SOLVER=interFoam
+elif command -v foamRun >/dev/null 2>&1; then
+    SOLVER=foamRun
+else
+    echo "ERROR: neither interFoam nor foamRun on PATH."
+    exit 1
+fi
+
+if [ ! -f system/blockMeshDict ]; then
+    echo "ERROR: system/blockMeshDict missing. Run gen_blockmesh.py first"
+    echo "       (see the header of this script for the arguments)."
+    exit 1
+fi
+
+echo "Cleaning..."
+rm -rf [1-9]* 0.[0-9]* constant/polyMesh VTK log.* processor* postProcessing 2>/dev/null
+
+echo "blockMesh..."
+blockMesh > log.blockMesh 2>&1 || { echo "FAILED: see log.blockMesh"; exit 1; }
+
+echo "checkMesh..."
+checkMesh > log.checkMesh 2>&1
+grep -q "^Mesh OK" log.checkMesh || echo "  WARNING: checkMesh did not report 'Mesh OK'"
+
+# setFields overwrites 0/alpha.* in place, so keep pristine copies. Re-running
+# Allrun after a completed run would otherwise seed the next run from the
+# previous one's initial condition -- silently, and only for alpha.
+echo "setFields..."
+[ -d 0.orig ] || cp -r 0 0.orig
+rm -rf 0 && cp -r 0.orig 0
+setFields > log.setFields 2>&1 || { echo "FAILED: see log.setFields"; exit 1; }
+
+if [ "$NP" -gt 1 ]; then
+    echo "decomposePar ($NP ranks)..."
+    decomposePar > log.decomposePar 2>&1 || {
+        echo "FAILED: see log.decomposePar"
+        echo "  If this says 'dummyScotchDecomp', your build has no scotch;"
+        echo "  system/decomposeParDict already defaults to 'simple' for that"
+        echo "  reason, so check numberOfSubdomains matches n and \$NP."
+        exit 1; }
+    echo "$SOLVER on $NP ranks..."
+    mpirun -np "$NP" $SOLVER -parallel > log.solver 2>&1 || {
+        echo "FAILED: see log.solver"; exit 1; }
+    reconstructPar > log.reconstructPar 2>&1
+else
+    echo "$SOLVER (serial)..."
+    $SOLVER > log.solver 2>&1 || { echo "FAILED: see log.solver"; exit 1; }
+fi
+
+# The extractor reads legacy .vtk; ESI foamToVTK writes a .vtm/.vtu tree unless
+# told otherwise, and the resulting "no indexed .vtk files" error appears only
+# at analysis time, hours after the run.
+echo "foamToVTK..."
+foamToVTK -legacy > log.foamToVTK 2>&1 || foamToVTK > log.foamToVTK 2>&1
+
+# A run that never formed droplets, or whose phases stopped summing to 1, is a
+# failure worth surfacing now rather than at the analysis step.
+# The dye fields come from function objects. If those failed to load, the run
+# still completes and still makes droplets -- it just silently carries no code,
+# and that is not discovered until the extractor errors out much later.
+echo ""
+if grep -qiE "sha1|Unknown function|cannot (find|load)" log.solver; then
+    echo "*** WARNING: function-object errors in log.solver."
+    echo "    The dye scalars may not have been transported. Check before"
+    echo "    spending analysis time on this run."
+else
+    echo "Function objects loaded; dye fields should be present in the output."
+fi
+
+echo ""
+echo "Done. Next:"
+echo "  python3 ../scripts/extract_droplet_dye.py ."
+echo "  python3 ../scripts/analyze_encoder.py ."
