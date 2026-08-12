@@ -45,6 +45,17 @@ result needs the full n ≈ 34 (~4 s sim, ~7 nights).
   — it survives across sessions but is never committed. These scripts are
   tracked; the multi-GB run data is not.
 
+## Where the run lives (Aug 2026)
+
+The completed run (t=3.0 s, n=23 — **no significant corner bias**) was archived
+to the **Samsung T7** at `/Volumes/T7/robolab_runs/encoder_3d_mp/` to free the
+internal disk. `runs/encoder_3d_mp.MOVED.txt` is a local pointer.
+
+To resume it (toward the formal n≈40 bound): **move it back to internal first** —
+Docker cannot bind-mount `/Volumes/T7` unless it is added to Docker Desktop →
+Settings → Resources → File Sharing (that mount attempt hung the daemon once).
+Then raise `endTime` and `./run_tonight.sh` resumes from the checkpoint.
+
 ## What the run is measuring
 
 The 2D null passed (core-vs-wall ≈ 0). 3D adds channel corners where oil
