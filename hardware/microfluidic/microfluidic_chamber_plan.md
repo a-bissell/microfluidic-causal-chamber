@@ -1,5 +1,17 @@
 # Microfluidic Causal Chamber: T-Junction Design Plan
 
+> **Status (2026-08): the simulation phase described below is done — via
+> OpenFOAM, not the COMSOL plan this document originally proposed.** See
+> [`simulation/openfoam/`](../../simulation/openfoam/) and especially
+> [`results/scaleup_2026-07`](../../simulation/openfoam/results/scaleup_2026-07/)
+> and [`results/encoder_dye_2026-08`](../../simulation/openfoam/results/encoder_dye_2026-08/)
+> for what's been verified: droplet formation, scale-up to 600–800 µm
+> (revising the 100–200 µm geometry originally planned here — see §2.1), and
+> a full 3D encoded-droplet result. Sections below have been updated where
+> the OpenFOAM work supersedes or corrects the original plan (marked inline);
+> the hardware/fluids/software/protocol sections are otherwise still the
+> forward plan for the physical build, which has **not yet started**.
+
 ## Executive Summary
 
 This document outlines the design, implementation, and validation plan for a **T-junction microfluidic causal chamber** - a droplet generation system with known causal structure for testing AI methodologies in fluid dynamics.
@@ -74,12 +86,26 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
 
 ### 2.1 Microfluidic Chip Specifications
 
-**Geometry:**
-- Main channel width: 100-200 μm
-- Dispersed phase channel width: 50-100 μm  
-- Channel depth: 50-100 μm (uniform)
-- Outlet channel: Same as main channel
-- Total chip size: ~25mm × 75mm (fits on microscope slide)
+**Geometry** (revised from the original 100–200 µm plan — see
+[scale-up study](../../simulation/openfoam/results/scaleup_2026-07/)):
+- Main channel width: **600–800 μm** — 400 µm forms droplets too, but needs a
+  fragile 1/64" endmill; 600–800 µm is milling-robust ("anyone with a $500
+  mill") and verified to reproduce the same regime (Ca has no length, so
+  holding velocity fixed preserves the physics across this range)
+- Dispersed phase channel width: same as main channel (cross-merge geometry;
+  see [`tjunction_3d_encoder`](../../simulation/openfoam/tjunction_3d_encoder/)
+  if building the encoded-droplet variant)
+- Channel depth: match width (square cross-section) — the 3D simulation work
+  models half-depth with a symmetry plane; full depth wetting (floor vs. lid)
+  is unverified and worth checking on the real chip (PMMA vs. adhesive film
+  may wet differently)
+- Outlet channel: same as main channel
+- Total chip size: scale up from ~25mm × 75mm accordingly
+- **Contact angle is load-bearing**: the simulation found wall wetting
+  determines dripping vs. jetting outright — 120° (a commonly-assumed
+  "oil-wet" default) produces a stable wall film with *no* droplets at all;
+  160° is what actually drips. If the real chip doesn't drip, check surface
+  treatment / PMMA wetting before suspecting geometry or flow rates.
 
 **Material:** PMMA (acrylic) - good for initial prototyping
 - Transparent for imaging
@@ -211,120 +237,110 @@ Why pressure control over syringe pumps?
 
 ---
 
-## 4. COMSOL Multiphysics Simulation
+## 4. Simulation: OpenFOAM (done)
 
-### 4.1 Purpose
+This section originally proposed a COMSOL Multiphysics model. That was never
+built. Instead, an open-source OpenFOAM simulation was built and has been
+extensively verified over several months — see
+[`simulation/openfoam/`](../../simulation/openfoam/) for the cases and
+[`results/`](../../simulation/openfoam/results/) for write-ups. No license
+needed (`opencfd/openfoam-default` Docker image).
 
-- **Validate causal model**: Confirm P → Q → droplet relationships
-- **Design optimization**: Test channel geometries before fabrication  
-- **Ground truth generation**: Create "perfect" data for algorithm benchmarking
-- **Parameter exploration**: Identify interesting operating regimes
+### 4.1 What's built and verified
 
-### 4.2 COMSOL Model Specifications
+- **Solver**: `interFoam` (2D/3D VOF, two-phase) and `multiphaseInterFoam`
+  (N-phase, used for the encoded-droplet variant). Geometry, meshing and BCs
+  are fully scripted (`gen_blockmesh.py`), not hand-built in a GUI.
+- **Droplet formation, verified against theory**: the Garstecki (2006) scaling
+  law is recovered across a parametric sweep (`results/sweep_2026-07`) —
+  9/9 cases formed droplets, L/w = 0.80 + 1.24·q, R² = 0.94.
+- **Scale-up, 400 → 800 µm**: same regime reproduced to within a few percent
+  across widths (`results/scaleup_2026-07`) — this is what revised the
+  channel geometry in §2.1.
+- **Mesh convergence**: `results/mesh_convergence_2026-07`.
+- **3D fidelity**: 3D droplet formation matches the 2D-verified case on all
+  four droplet observables (`results/mill3d800_2026-08`), and a 3D
+  encoded-droplet (multi-dye) case ran to a full result
+  (`results/encoder_dye_2026-08`) — see the interactive 3D visualization
+  tooling there if building the multi-dye encoder variant of this chip.
+- **The wall-wetting finding in §2.1** (160°, not the more commonly assumed
+  120°) came out of this work and is worth carrying into the real chip.
 
-**Physics Modules:**
-1. **Laminar Flow (spf)**
-   - Incompressible Navier-Stokes
-   - Inlet: Pressure boundary conditions
-   - Outlet: Pressure or open boundary
-   - Walls: No-slip
+### 4.2 What OpenFOAM still needs to do for this plan
 
-2. **Phase Field (pf)** or **Level Set (ls)**
-   - Two-phase flow (oil-water interface)
-   - Surface tension effects
-   - Contact angle at walls
-   - Captures droplet formation dynamics
+The parametric sweep, validation against Garstecki, and geometry
+finalization that §4.1–4.3 of the original COMSOL plan called for are
+**done** (above). What's *not* yet done, and would still be useful before or
+alongside fabrication:
+- A sweep matched to the exact final chip dimensions and fluid pair chosen
+  for the physical build (the existing sweeps use velocity or pressure
+  ranges chosen for simulation convenience, not necessarily the real
+  actuator's range).
+- Export of a lookup table / fitted mechanistic model (§4.3 below) from the
+  existing sweep data, if a fast forward model is wanted for real-time
+  comparison during bench characterization.
 
-**Geometry:**
-- 2D initially (faster, sufficient for T-junction)
-- 3D for complex effects (depth variations, 3D droplets)
+### 4.3 Mechanistic Model Development
 
-**Mesh:**
-- Fine mesh near junction (<5 μm elements)
-- Coarser in far-field
-- Boundary layer mesh at walls
-- ~50k-500k elements depending on 2D/3D
-
-**Solver:**
-- Time-dependent study
-- Time steps: 0.01-0.1 ms (capture droplet formation)
-- Simulation time: 0.5-2 seconds (5-50 droplet formations)
-- Direct or iterative solver (MUMPS, PARDISO)
-
-### 4.3 Simulation Outputs
-
-**Parametric Sweep:**
-- Vary P_cont, P_disp systematically
-- Extract: droplet frequency, size, formation regime (dripping/jetting)
-- Create lookup tables for mechanistic model
-
-**Validation Metrics:**
-- Compare to literature correlations (Garstecki 2006, etc.)
-- Validate against experimental data once available
-
-**Export:**
-- Time series of droplet metrics → CSV (same format as experimental data)
-- Videos of simulations for visualization
-- Sensitivity analysis: ∂f/∂P_cont, ∂d/∂(Q_disp/Q_cont)
-
-### 4.4 Mechanistic Model Development
-
-Similar to wind tunnel/light tunnel models in appendix IV of the paper:
+Same structure as originally planned, now fit against OpenFOAM sweep data
+rather than COMSOL:
 
 ```python
 class MicrofluidicModel:
     """
-    Mechanistic model of T-junction droplet generation
-    Based on COMSOL simulations and theory
+    Mechanistic model of T-junction droplet generation.
+    Fit against OpenFOAM sweep data (simulation/openfoam/results/sweep_2026-07)
+    rather than COMSOL.
     """
-    
+
     def __init__(self, params):
         # Channel geometry
         self.w_main = params['w_main']  # μm
         self.w_disp = params['w_disp']  # μm
         self.depth = params['depth']     # μm
-        
+
         # Fluid properties
         self.mu_cont = params['mu_cont']  # Pa·s
         self.mu_disp = params['mu_disp']  # Pa·s
         self.gamma = params['gamma']      # N/m (interfacial tension)
-        
-        # Fitted parameters from COMSOL
+
+        # Fitted parameters — from the Garstecki fit in results/sweep_2026-07
+        # (L/w = 0.80 + 1.24*q); refit against the real chip's sweep once run
         self.alpha_freq = params['alpha_freq']
         self.beta_size = params['beta_size']
-        
+
     def compute_flow_rates(self, P_cont, P_disp, P_out):
         """Hagen-Poiseuille flow in rectangular channel"""
         R_cont = self.compute_resistance('continuous')
         R_disp = self.compute_resistance('dispersed')
-        
+
         Q_cont = (P_cont - P_out) / R_cont
         Q_disp = (P_disp - P_out) / R_disp
         return Q_cont, Q_disp
-    
+
     def compute_droplet_frequency(self, Q_cont, Q_disp):
-        """Empirical correlation fitted from COMSOL"""
+        """Empirical correlation fitted from the OpenFOAM sweep"""
         Q_total = Q_cont + Q_disp
         Ca = self.capillary_number(Q_cont)
         f = self.alpha_freq * Q_total / self.w_main**2
         return f
-    
+
     def compute_droplet_size(self, Q_cont, Q_disp):
-        """Scaling law from literature + COMSOL calibration"""
+        """Garstecki scaling law, calibrated against the OpenFOAM sweep"""
         Q_ratio = Q_disp / Q_cont
         d = self.w_main * self.beta_size * Q_ratio**0.3
         return d
-    
+
     def forward(self, P_cont, P_disp, P_out):
         """Full forward model: pressures → observables"""
         Q_cont, Q_disp = self.compute_flow_rates(P_cont, P_disp, P_out)
         f = self.compute_droplet_frequency(Q_cont, Q_disp)
         d = self.compute_droplet_size(Q_cont, Q_disp)
-        
+
         # Add sensor noise model
         P_cont_meas = P_cont + np.random.normal(0, self.sigma_pressure)
         # ... etc
-        
+
         return {
             'P_cont_meas': P_cont_meas,
             'f_droplet': f,
@@ -387,7 +403,7 @@ Following the pattern from `wt_test_v1` and `lt_test_v1`:
 - Rediscover scaling laws from data
 - Input: P_cont, P_disp, fluid properties
 - Output: f_droplet, d_droplet
-- Compare to Garstecki correlation and COMSOL model
+- Compare to Garstecki correlation and the OpenFOAM sweep results
 
 **Case Study D: Change Point Detection**
 - Steady droplet generation, then sudden pressure change
@@ -435,9 +451,9 @@ datasets/
     └── ground_truth/
         ├── graph_config1.yaml     ← Causal graph definition
         ├── scm_params.py          ← Structural equation parameters
-        └── comsol_validation/
-            ├── model.mph          ← COMSOL model file
-            ├── results.csv        ← Simulation outputs
+        └── openfoam_validation/
+            ├── (link or copy of the relevant simulation/openfoam/results/ case)
+            ├── droplet_dye.csv    ← Simulation outputs (see existing results/ dirs)
             └── comparison.ipynb   ← Compare sim to experiment
 ```
 
@@ -655,8 +671,9 @@ Following Appendix V of the original paper:
    - RMSE between model-predicted d and measured d
    - Comparison to Garstecki correlation (2006)
 
-4. **COMSOL Validation:**
-   - Compare simulation droplet metrics to experimental
+4. **OpenFOAM Validation:**
+   - Compare simulation droplet metrics to experimental (see
+     `simulation/openfoam/results/` for the existing simulation baseline)
    - Identify regime boundaries (dripping → jetting)
 
 ### 7.3 Comparison to Literature
@@ -704,7 +721,7 @@ Following Appendix V of the original paper:
    - Test symbolic regression for rediscovering physics
 
 3. **Educational Resource**:
-   - COMSOL model for teaching microfluidics
+   - Open-source OpenFOAM model for teaching microfluidics (no license needed)
    - Dataset for classroom exercises
    - Open-source control software
 
@@ -712,79 +729,84 @@ Following Appendix V of the original paper:
 
 ## 9. Development Timeline
 
-### Phase 1: Simulation & Design (Weeks 1-4)
+The original week-numbered timeline below assumed simulation (Phase 1) as the
+first four weeks. That work happened instead as an extended OpenFOAM
+investigation (months, not weeks — see §4) that also caught and fixed real
+physics issues (contact angle, geometry) a from-literature guess wouldn't
+have. Absolute week numbers for the *remaining* phases would just go stale
+the same way, so they're given here relative to whenever hardware fabrication
+actually starts, not to a fixed calendar.
 
-**Week 1-2: COMSOL Model Development**
-- [ ] Build 2D T-junction geometry in COMSOL
-- [ ] Implement two-phase flow (Phase Field)
-- [ ] Run parametric sweep (P_cont, P_disp)
-- [ ] Validate against literature (Garstecki 2006)
-- [ ] Export simulation results to CSV
+### Phase 1: Simulation & Design — ✅ Done
 
-**Week 3-4: Hardware Design Finalization**
-- [ ] Finalize channel dimensions (based on COMSOL)
-- [ ] CAD model of microfluidic chip (Fusion 360)
-- [ ] Design 3D printed Luer ports
-- [ ] Create shopping list from BOM
-- [ ] Order components (long lead time: camera, pressure controllers)
+- [x] Two-phase VOF model (OpenFOAM `interFoam`), 2D and 3D
+- [x] Parametric sweep, validated against Garstecki (2006)
+- [x] Channel geometry finalized: 600–800 µm (§2.1), revised from this
+      document's original 100–200 µm guess based on a dedicated scale-up study
+- [x] Critical finding banked: wall contact angle is load-bearing (160°, not
+      120°) — would have caused a real chip to jet a wall film instead of
+      dripping, likely read as "wrong regime" rather than "wrong wetting"
+- [ ] CAD model of the physical chip (Fusion 360) — not started
+- [ ] Design 3D printed Luer ports — not started
+- [ ] Order components (long lead time: camera, pressure controllers) — not started
 
-### Phase 2: Fabrication & Assembly (Weeks 5-8)
+### Phase 2: Fabrication & Assembly (from hardware start, Weeks 1-4)
 
-**Week 5-6: Chip Fabrication**
-- [ ] Machine/laser cut PMMA chip
+**Weeks 1-2: Chip Fabrication**
+- [ ] Machine/laser cut PMMA chip at 600–800 µm (not the original 100–200 µm)
 - [ ] 3D print Luer ports
 - [ ] Bond chip layers
 - [ ] Leak test with DI water
 
-**Week 7-8: System Integration**
+**Weeks 3-4: System Integration**
 - [ ] Assemble fluid handling (reservoirs, tubing, controllers)
 - [ ] Set up camera + optics + illumination
 - [ ] Integrate pressure sensors
 - [ ] Wire electronics, test communication
 
-### Phase 3: Software Development (Weeks 9-12)
+### Phase 3: Software Development (Weeks 5-8)
 
-**Week 9-10: Control Software**
+**Weeks 5-6: Control Software**
 - [ ] Pressure controller interface
 - [ ] Sensor acquisition
 - [ ] Protocol interpreter (adapt from wind tunnel)
 - [ ] Basic GUI for manual control
 
-**Week 11-12: Image Processing**
+**Weeks 7-8: Image Processing**
 - [ ] Droplet detection algorithm
 - [ ] Frequency measurement algorithm
 - [ ] Real-time visualization
 - [ ] Calibration procedure (pixels → μm)
 
-### Phase 4: Characterization (Weeks 13-16)
+### Phase 4: Characterization (Weeks 9-12)
 
-**Week 13-14: Basic Characterization**
+**Weeks 9-10: Basic Characterization**
 - [ ] Pressure-flow calibration
 - [ ] Formation regime mapping
 - [ ] Sensor noise characterization
-- [ ] Compare to COMSOL predictions
+- [ ] Compare bench results to the existing OpenFOAM predictions
 
-**Week 15-16: Test Experiments**
+**Weeks 11-12: Test Experiments**
 - [ ] Run test protocols
-- [ ] Collect initial dataset (lt_test_v1 equivalent)
+- [ ] Collect initial dataset (`mf_tjunction_test_v1`)
 - [ ] Debug issues
 - [ ] Refine protocols
 
-### Phase 5: Validation & Case Studies (Weeks 17-24)
+### Phase 5: Validation & Case Studies (Weeks 13-20)
 
-**Week 17-18: Ground Truth Validation**
+**Weeks 13-14: Ground Truth Validation**
 - [ ] Randomized control trials
 - [ ] Test conditional independencies
 - [ ] Finalize causal graph
 - [ ] Document in manuscript appendix
 
-**Week 19-22: Case Study Data Collection**
+**Weeks 15-18: Case Study Data Collection**
 - [ ] Causal discovery datasets
 - [ ] OOD datasets (different fluids)
 - [ ] Symbolic regression datasets
 - [ ] Time-series datasets
 
-**Week 23-24: Analysis & Publication**
+**Weeks 19-20: Analysis & Publication**
 - [ ] Run case study algorithms
 - [ ] Compare to wind/light tunnel results
 - [ ] Write manuscript
@@ -804,11 +826,11 @@ Based on BOM (medium-cost options):
 | **Sensors** | Pressure sensors (3×) with interface hardware | $300 - 900 |
 | **Control/DAQ** | Computer (if needed), microcontroller, cables, proto boards | $100 - 600 |
 | **Consumables** | Oils, surfactant, dyes, cleaning supplies, safety gear | $100 - 200 |
-| **COMSOL License** | (if not already available) | $0 - 5,000* |
 
-**Total: $4,400 - 9,200** (excluding COMSOL if not available)
+**Total: $4,400 - 9,200**
 
-*COMSOL: Check if university/institution has license. Student version ~$100. Full license ~$5k.
+*(Simulation is OpenFOAM, which is free/open-source — no license line needed
+here anymore; see §4.)*
 
 **Minimum Viable Build: ~$3,000** (using existing computer, DIY pressure control, hobby CNC)
 
@@ -821,8 +843,8 @@ Based on BOM (medium-cost options):
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | Chip fabrication fails (leaks, wrong dimensions) | Medium | High | Make multiple chips, have backup fabrication method (e.g., 3D print master), test bonding on scrap first |
-| Droplet formation doesn't work (wrong regime) | Medium | Medium | COMSOL simulation first, use literature-validated dimensions, have tunable fluids (glycerol) |
-| Pressure controllers too expensive | Low | High | Plan DIY alternative with Arduino + proportional valves, budget for this in Phase 1 |
+| Droplet formation doesn't work (wrong regime) | **Low** *(was Medium — largely de-risked)* | Medium | Dimensions, flow rates and — critically — **wall contact angle (160°, not the more typical 120°)** are now verified in OpenFOAM (§4), not just from literature. If it still doesn't drip on the real chip, suspect surface wetting/treatment first. |
+| Pressure controllers too expensive | Low | High | Plan DIY alternative with Arduino + proportional valves, budget for this in Phase 2 |
 | Camera frame rate insufficient | Low | Medium | Verify specs before purchase (>200 fps), have manual high-speed camera option (borrow?) |
 | Droplet detection algorithm fails | Medium | Medium | Use multiple algorithms (Hough circles, thresholding, ML), manually annotate ground truth |
 | Outlet clogging during experiments | Medium | Low | Frequent cleaning protocols, filters on inlets, flush system between experiments |
@@ -831,36 +853,40 @@ Based on BOM (medium-cost options):
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Long lead time for components (camera, controllers) | High | Medium | Order components in Phase 1, have backup vendors, check stock before finalizing |
-| COMSOL model takes longer than expected | Medium | Low | Start with 2D (faster), use literature params as starting point, this is not blocking |
+| Long lead time for components (camera, controllers) | High | Medium | Order components as early as possible in Phase 2, have backup vendors, check stock before finalizing |
 | Software development delays | Medium | Medium | Reuse wind tunnel code architecture, have modular design (can test hardware without full pipeline) |
 
 ---
 
 ## 12. Next Steps
 
-### Immediate Actions (This Week)
+Simulation (the original "Phase 1 / Immediate Actions") is done — see §4.
+What's actually next is the physical build:
 
-1. **Review COMSOL tutorials** on two-phase flow (Phase Field interface)
-2. **Finalize chip geometry** (channel widths, lengths) based on literature review
+### Immediate Actions
+
+1. **Finalize chip geometry** for fabrication — start from 600–800 µm (§2.1),
+   verified in OpenFOAM; adjust for whatever fluid pair is actually sourced
+2. **CAD model of the chip** (Fusion 360 or similar), including Luer ports
 3. **Order long-lead items**:
    - Machine vision camera (research Basler, FLIR models)
    - Pressure controllers (get quotes from vendors)
-4. **Set up COMSOL** (install, license, run tutorial model)
+4. **Confirm the wall-wetting plan** for the real chip (§2.1) — PMMA surface
+   treatment or adhesive-film choice needs to land near 160° contact angle,
+   not the more commonly assumed 120°, or expect a wall film instead of
+   droplets
 
-### Phase 1 Deliverables (Month 1)
+### Phase 2 Deliverables (Fabrication & Assembly)
 
-1. **COMSOL Model**:
-   - Working 2D T-junction simulation
-   - Droplet formation in dripping regime
-   - Parametric study: f(P_cont, P_disp)
-   - Report with simulation results
-
-2. **Hardware Design**:
+1. **Hardware Design**:
    - CAD files for chip (Fusion 360 or similar)
    - 3D models for Luer ports
    - Finalized BOM with vendors and prices
    - Circuit diagrams for sensor integration
+
+2. **Fabricated Chip**:
+   - Leak-free, milled at the finalized geometry
+   - Verified wetting behavior (droplets form, not a wall film)
 
 3. **Initial Software**:
    - Pressure controller communication script
@@ -885,13 +911,12 @@ Based on BOM (medium-cost options):
    - Physics of Fluids, 29(7), 072102
    - Recent review with dimensionless analysis
 
-### COMSOL Resources
+### Simulation Resources
 
-- COMSOL Application Gallery: "Droplet Formation in a T-Junction"
-  - https://www.comsol.com/model/droplet-formation-in-a-t-junction-34591
-  
-- COMSOL Learning Center: Phase Field Method for Two-Phase Flow
-  - Video tutorials, documentation
+- [`simulation/openfoam/README.md`](../../simulation/openfoam/README.md) —
+  case overview and how to run them
+- [OpenFOAM User Guide](https://www.openfoam.com/documentation/user-guide) —
+  `interFoam` / VOF two-phase flow
 
 ### Causal Inference Background
 
@@ -914,7 +939,7 @@ For this project, key stakeholders:
 1. **Microfluidics Expertise**: (You) - design, fabrication, validation
 2. **Causal Inference**: Gamella lab (paper authors) - methodology, comparison to existing chambers
 3. **Machine Learning**: Collaborators for case studies - causal discovery, symbolic regression, etc.
-4. **Simulation**: COMSOL support, CFD experts at institution
+4. **Simulation**: OpenFOAM / CFD community (open-source, no institutional license dependency)
 
 Consider reaching out to Juan Gamella (juangamella@gmail.com) to:
 - Share this plan and get feedback
@@ -1010,9 +1035,10 @@ print("Protocol generated successfully!")
 
 ---
 
-**Document Version**: 1.0  
-**Date**: 2025-10-22  
-**Author**: [Your Name], Microfluidics Engineer  
-**Status**: Planning Phase
+**Document Version**: 1.1  
+**Original Date**: 2025-10-22 · **Revised**: 2026-08-12 (simulation section
+and geometry updated to reflect the completed OpenFOAM work — see the note
+at the top of this document)  
+**Status**: Simulation phase done (OpenFOAM); physical build not yet started
 
 

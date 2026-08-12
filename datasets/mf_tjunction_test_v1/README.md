@@ -54,7 +54,7 @@ The file [variables.csv](variables.csv) contains a brief description of each var
 | Experiment | Generator | Description |
 |:----------------------:|:---------:|:------------|
 | pressure\_flow\_calibration | [`generators/pressure_flow_calibration.py`](generators/pressure_flow_calibration.py) | Measures the relationship between inlet pressure and volumetric flow rate to validate Hagen-Poiseuille equation and determine channel hydraulic resistance. Flow rates measured by weighing outlet fluid over time. |
-| formation\_regimes | [`generators/formation_regimes.py`](generators/formation_regimes.py) | Systematic sweep of (P\_cont, P\_disp) parameter space to map droplet formation regimes (dripping, jetting, co-flow). Records 100 droplets per condition with high-speed video. Used to identify stable operating region and validate COMSOL predictions. |
+| formation\_regimes | [`generators/formation_regimes.py`](generators/formation_regimes.py) | Systematic sweep of (P\_cont, P\_disp) parameter space to map droplet formation regimes (dripping, jetting, co-flow). Records 100 droplets per condition with high-speed video. Used to identify stable operating region and validate against OpenFOAM predictions. |
 | frequency\_scaling | [`generators/frequency_scaling.py`](generators/frequency_scaling.py) | Tests the scaling relationship between total flow rate and droplet frequency. Fixes flow rate ratio Q\_disp/Q\_cont while varying total flow. Validates scaling law f ∝ Q\_total. |
 | size\_scaling | [`generators/size_scaling.py`](generators/size_scaling.py) | Tests the scaling relationship between flow rate ratio and droplet size. Fixes total flow rate while varying Q\_disp/Q\_cont. Validates Garstecki (2006) scaling law: L/w ∝ (Q\_disp/Q\_cont)^α. |
 | sensor\_noise | [`generators/sensor_noise.py`](generators/sensor_noise.py) | Characterizes pressure sensor noise and stability at fixed pressure values. Measures N=1000 samples at constant pressure for each sensor. Determines sensor precision and drift characteristics. |
@@ -111,7 +111,7 @@ Q_cont / Q_disp → d_droplet, L_droplet (flow rate ratio determines size)
 
 The graph is validated through:
 1. Interventional experiments (set pressure, measure flow/droplets)
-2. Comparison to COMSOL simulations
+2. Comparison to OpenFOAM simulations (see `simulation/openfoam/results/`)
 3. Consistency with established microfluidics literature (Garstecki 2006, etc.)
 
 ## Physics Background

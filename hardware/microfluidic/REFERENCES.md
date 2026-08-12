@@ -54,26 +54,26 @@
 
 ---
 
-## Computational Fluid Dynamics / COMSOL
+## Computational Fluid Dynamics
 
-### Phase Field Method
+This project's simulation work is all [OpenFOAM](../../simulation/openfoam/)
+(`interFoam` / `multiphaseInterFoam`, VOF), not COMSOL — see
+[`simulation/openfoam/results/`](../../simulation/openfoam/results/) for the
+built and verified cases. The two theory references below are general
+interface-tracking / VOF background, independent of tool.
+
+### Interface-Tracking Theory
 8. **Jacqmin, D. (2000)**  
    *Contact-line dynamics of a diffuse fluid interface*  
    Journal of Fluid Mechanics, 402, 57-88.  
    DOI: [10.1017/S0022112099006874](https://doi.org/10.1017/S0022112099006874)  
-   **Theory**: Foundation for phase field modeling of two-phase flow.
+   **Theory**: Foundation for phase field / diffuse-interface modeling of two-phase flow.
 
 9. **Derzsi, L., Kasprzyk, M., Plog, J. P., & Garstecki, P. (2013)**  
    *Flow focusing with viscoelastic liquids*  
    Physics of Fluids, 25(9), 092001.  
    DOI: [10.1063/1.4817995](https://doi.org/10.1063/1.4817995)  
-   **Simulation**: COMSOL model validation for microfluidic droplets.
-
-### COMSOL Resources
-10. **COMSOL Multiphysics Application Library**  
-    *Droplet Formation in a T-Junction* (Model ID: 34591)  
-    https://www.comsol.com/model/droplet-formation-in-a-t-junction-34591  
-    **Tutorial**: Official COMSOL model for T-junction.
+   **Simulation**: droplet-formation model validation methodology (originally COMSOL; the same validation approach applies to the OpenFOAM cases here).
 
 ---
 
