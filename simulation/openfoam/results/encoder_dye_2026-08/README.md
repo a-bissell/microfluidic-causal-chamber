@@ -378,6 +378,28 @@ dimension-independent property of the cross-merge — not a corner effect.
 
 `droplet_dye_3d_multiphase_n23.csv` holds the per-droplet data.
 
+### Visuals of the 3D coded droplet
+
+`coded_droplet_3d.gif` — one formation cycle, the interface rendered as a 3D
+surface **coloured by composition** (dye1=R, dye2=G, dye3=B), so the code is
+visible on the droplet itself. The three tools in `../../scripts/`:
+
+- `render_encoder_3d.py` — filmstrip / GIF of the marching-cubes interface,
+  coloured by composition. Adapted from `render_droplet_3d.py` (the mill
+  renderer, solid-blue water); the encoder version contours on total water and
+  paints the surface with the dye ratio.
+- `export_encoder_mesh.py` — exports the interface (vertices, triangles,
+  per-vertex composition colour, normals) + channel wireframe to a compact JSON
+  for the browser.
+- `encoder_3d_viewer_template.html` — a self-contained WebGL viewer (no
+  libraries, so it publishes as a private Artifact): orbit / zoom / pan, plus
+  play/scrub over the formation cycle. Inject a mesh JSON in place of the
+  `__MESH__` placeholder and open it.
+
+Both work on any multiphase run (they auto-sum the three water phases). Run the
+mesh export against `runs/encoder_3d_mp/` (or its T7 archive) and the frames
+come straight from the same VTK the analysis uses.
+
 ### A second extractor bug, found here
 
 The first multiphase analysis was wrong: it reported a **62 ms** period against
