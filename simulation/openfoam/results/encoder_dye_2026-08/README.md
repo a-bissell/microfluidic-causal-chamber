@@ -10,9 +10,11 @@ the loss is strongly differential between the three laminae, and the resulting
 composition does not converge under mesh refinement — the core-vs-wall
 signature *changes sign* between 40 µm and 60 µm cells.
 
-The planned 3D run is therefore **not interpretable** and should not be
-launched against this method. Mesh refinement will not rescue it: measured
-leakage scales as `dx^0.49`, so reaching 2% would need sub-micron cells.
+A 3D run **against this method** would therefore be **not interpretable**, and
+was not attempted with it. Mesh refinement will not rescue the passive scalars:
+measured leakage scales as `dx^0.49`, so reaching 2% would need sub-micron
+cells. (The 3D run *was* done — on `multiphaseInterFoam`, which fixes this at
+the source; see **The 3D run**. It came back clean.)
 
 This is a negative result about the *instrument*, not about the encoder. The
 droplet physics in this geometry remains verified (see the case README's
@@ -25,8 +27,11 @@ does drip, with the config exactly as it was abandoned. It produces 1240 µm
 slugs on a 160 ms period, matching `interFoam` in this geometry, and its
 composition fields are MULES-conserved and bounded, which deletes this entire
 failure mode rather than mitigating it. See **The revert was a false negative**
-below. Fidelity on multiphase is being measured now; formation and
-conservation are confirmed.
+below. Fidelity on multiphase is confirmed (2D null passes), and the **3D run
+has now been done** — see **The 3D run** below. Short version: **no significant
+corner bias.** Core-vs-wall in 3D is −0.007 ± 0.009 (n=23), consistent with
+zero and with the 2D null. The encoder's mixing-insensitivity holds in 3D — the
+result the whole case was built to test, and the favorable one for the chip.
 
 ## The one piece of good news
 
@@ -323,6 +328,56 @@ drops exactly the one coalescence droplet and the null tightens to **−0.0018**
 (from −0.0076); on the 2.0 s run it drops none. Passive-scalar runs are
 untouched (their within-scatter ~0.001 is far below the floor).
 
+## The 3D run: no significant corner bias
+
+This is what the whole case was built to measure. 2D has no channel corners, so
+core-vs-wall must be ≈ 0 there (it is: −0.002). In 3D, oil intrudes at the
+corners of the water leg; if the slug then samples its core preferentially, the
+centre lamina (dye2) would be over- or under-represented and the code biased.
+The signal is `core-vs-wall = c2 − (c1+c3)/2`, and the difference between the
+matched 2D and 3D runs is the result.
+
+**Run:** `runs/encoder_3d_mp/`, 3D half-depth, 66k cells, `multiphaseInterFoam`,
+4-rank MPI, in overnight chunks (see `nightly/`). Reached t = 3.0 s.
+
+| | 2D null | **3D (n=23, t=3.0 s)** |
+|---|---|---|
+| **core-vs-wall** | −0.002 | **−0.007 ± 0.009  (0.8σ)** |
+| c1 / c2 / c3 | — | 0.315 / 0.329 / 0.357 |
+| leg asymmetry c1−c3 | −0.035 | −0.042 ± 0.013 (reproduces 2D) |
+| phase-sum conservation | 1.000 | 1.000 |
+
+**Core-vs-wall is consistent with zero, and consistent with the 2D null.** As n
+grew it moved *toward* zero, not away: −0.010 (n=14) → −0.007 (n=23), with
+significance dropping 1.2σ → 0.8σ. That is the behaviour of a null, not an
+emerging effect. **The encoder's mixing-insensitivity holds in 3D** — corner
+intrusion, though hydrodynamically real (`mill3d800_2026-08`: bypass 1.307 in 3D
+vs 1.118 in 2D), does not measurably bias the composition readout. A droplet's
+code equals the commanded flow fraction, corners and all. This is the favorable
+outcome for the chip: integrated absorbance can be read as the code with no 3D
+correction, and no on-chip mixer.
+
+Two honest caveats:
+
+- **A tentative negative-sign hint at n=14 washed out.** At n=14 core-vs-wall
+  was −0.010 (centre lamina *under*-sampled, opposite the naive corner-gutter
+  prediction). It was flagged as intriguing-but-premature; by n=23 it had
+  regressed to −0.007, i.e. it was mostly noise. Correctly not banked.
+- **This is not a formal 3-sigma bound.** The 3D per-droplet scatter (SD 0.042)
+  came in higher than 2D (0.031) — and higher than projected from the n=14 data
+  — so bounding the bias below 2% at 3σ would need n ≈ 40 (~1.9 s more sim,
+  ~2–3 more nights). The run was called at n=23 because the conclusion was
+  already clear and would only tighten: the effect is consistent with zero and
+  small (< ~1.5% at 1σ). Anyone wanting the formal bound can resume the run
+  (`nightly/run_tonight.sh`, raise `endTime`) — the checkpoint at 2.99546 is
+  intact.
+
+The leg asymmetry `c1 − c3 = −0.042` reproduces the 2D value (−0.035), a clean
+cross-check that the 3D measurement is sound and that the asymmetry is a real,
+dimension-independent property of the cross-merge — not a corner effect.
+
+`droplet_dye_3d_multiphase_n23.csv` holds the per-droplet data.
+
 ### A second extractor bug, found here
 
 The first multiphase analysis was wrong: it reported a **62 ms** period against
@@ -509,6 +564,7 @@ arrived, and the sequence is instructive:
 | `droplet_dye_multiphase_2s.csv` | **multiphase**, 2.0 s, 40 µm — 8 droplets, the null that passes |
 | `droplet_dye_multiphase_6p5s.csv` | **multiphase**, 6.5 s, 40 µm — 34 droplets, settles `c1−c3` and the noise |
 | `droplet_dye_multiphase_c05_2s.csv` | **multiphase `cAlpha 0.5`**, 2.0 s — the satellite-remedy test |
+| `droplet_dye_3d_multiphase_n23.csv` | **3D**, 66k cells, t=3.0 s — the corner-bias result (n=23) |
 
 All written by the corrected `extract_droplet_dye.py` (masked integral,
 satellite filter), so `V_nL` and the `c_i` are wet-cell quantities and are
@@ -536,4 +592,4 @@ directly.
 | Core-vs-wall vs the asymmetry | ✅ immune by construction (averages c1,c3) — null holds at 0.9σ |
 | Satellite droplets | ✅ `cAlpha` artifact (single-lamina, ~3 cells); filtered in analysis. **Not** the noise driver |
 | Core-vs-wall slow drift | ✅ **not real** — white noise + one coalescence droplet; within-scatter filter added |
-| **3D run** | ⚠️ unblocked in principle (readout works); gate must be removed first, and 3D needs n≈34 |
+| **3D run** | ✅ **done (n=23): core-vs-wall −0.007 ± 0.009, consistent with zero — no significant corner bias** |

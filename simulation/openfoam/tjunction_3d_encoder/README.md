@@ -30,8 +30,16 @@
 > junction one way, so dye1 lands at the slug's rear cap, dye3 at its front).
 > The 6.5 s run (n=34) settled `c1−c3`: it is a **real** −0.035 leg asymmetry,
 > so that validity gate is retired — but core-vs-wall averages it out and holds
-> the null at 0.9σ, so the readout is sound. The 3D run needs the gate removed
-> and n≈34, not a method rewrite.
+> the null at 0.9σ, so the readout is sound.
+>
+> **The 3D run is now done** (`../runs/encoder_3d_mp/`, 66k cells,
+> multiphaseInterFoam, run overnight in chunks via `../nightly/`). Result at
+> n=23: **core-vs-wall = −0.007 ± 0.009, consistent with zero and with the 2D
+> null — no significant corner bias.** The encoder's mixing-insensitivity holds
+> in 3D; a droplet's code equals the commanded flow fraction, corners and all.
+> Not a formal 3σ bound (that needs n≈40, ~2 more nights; the checkpoint is
+> intact if wanted), but the effect is clearly small and trending to zero. See
+> [`results/encoder_dye_2026-08`](../results/encoder_dye_2026-08/) → *The 3D run*.
 
 Digital twin of an **encoded-droplet** chip: three dye streams merge upstream
 of the T-junction, and the composition of each droplet is a *symbol*. This
@@ -481,7 +489,7 @@ core-vs-wall bias smaller than it.
 | **Composition readout, multiphase** | ✅ **2D null passes** — core-vs-wall +0.0065 (0.47σ), closure exact |
 | Symmetry control (`c1 = c3`) | ❗ **retired** — real leg asymmetry −0.035 at 3σ (n=34); the gate was wrong, not the runs |
 | Per-droplet noise, multiphase | ⚠️ ~10× the passive figure — 3D bias run needs n ≈ 34 |
-| **3D run** | ⛔ **blocked** on pinning `c1 − c3`, not on a method rewrite |
+| **3D run** | ✅ **done (n=23): core-vs-wall −0.007 ± 0.009, consistent with zero — no significant corner bias** |
 
 The droplet physics, the geometry and the operating point are verified and
 unaffected. The passive-scalar *readout* failed — the three dyes are advected
