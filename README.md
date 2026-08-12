@@ -5,8 +5,9 @@ with a known, physics-based causal structure, built as a real-world testbed for
 causal-inference and AI methodology.
 
 <p align="center">
-  <img src="simulation/openfoam/results/mill3d800_2026-08/droplet_3d_800um.gif" alt="3D droplet formation at a T-junction: water necks at the junction and a droplet pinches off into the oil-filled main channel" width="620"><br>
-  <sub><em>3D droplet formation in the digital twin — the water phase necks at the junction and a droplet pinches off into the oil-filled main channel. OpenFOAM <code>interFoam</code> (VOF), 800&nbsp;µm milled-chip geometry, operating point derived from measured 2D fluxes (q&nbsp;=&nbsp;0.29, Ca&nbsp;=&nbsp;0.032).</em></sub>
+  <img src="simulation/openfoam/results/encoder_dye_2026-08/coded_droplet_3d.gif" width="640" alt="A coded droplet forming in a 3D T-junction OpenFOAM simulation, its surface coloured by dye composition (red/green/blue for the three inlet streams).">
+  <br>
+  <em>Encoded-droplet twin (<a href="simulation/openfoam/tjunction_3d_encoder/">tjunction_3d_encoder</a>): three dye streams merge and are chopped into droplets whose composition is a symbol. The 3D interface is coloured by composition (R/G/B = the three dyes). 2D verification and the 3D corner-bias result are written up in <a href="simulation/openfoam/results/encoder_dye_2026-08/">results/encoder_dye_2026-08</a>.</em>
 </p>
 
 This project extends the [**Causal Chambers**](https://github.com/juangamella/causal-chamber)
@@ -30,12 +31,6 @@ P_disp → Q_disp ┘
 ---
 
 ## What's here
-
-<p align="center">
-  <img src="simulation/openfoam/results/encoder_dye_2026-08/coded_droplet_3d.gif" width="640" alt="A coded droplet forming in a 3D T-junction OpenFOAM simulation, its surface coloured by dye composition (red/green/blue for the three inlet streams).">
-  <br>
-  <em>Encoded-droplet twin (<a href="simulation/openfoam/tjunction_3d_encoder/">tjunction_3d_encoder</a>): three dye streams merge and are chopped into droplets whose composition is a symbol. The 3D interface is coloured by composition (R/G/B = the three dyes). 2D verification and the 3D corner-bias result are written up in <a href="simulation/openfoam/results/encoder_dye_2026-08/">results/encoder_dye_2026-08</a>.</em>
-</p>
 
 The code to reproduce the case studies in the original paper can be found in the separate [paper repository](https://github.com/juangamella/causal-chamber-paper).
 
