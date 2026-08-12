@@ -114,7 +114,7 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
 - Can be upgraded to PDMS or glass later
 
 **Fabrication Method:**
-- Option A: CNC micromilling (recommended - see BOM for Desktop CNC)
+- Option A: CNC micromilling (recommended — a hobby CNC suffices at 800 µm; see [`chip_bom.md`](chip_bom.md))
 - Option B: Laser cutting + layer bonding (faster but limited depth control)
 - Option C: 3D printed master → PDMS casting (for future iterations)
 
@@ -877,19 +877,27 @@ actually starts, not to a fixed calendar.
 
 ## 10. Budget Estimate
 
-Based on BOM (medium-cost options):
+Summed from [`chip_bom.md`](chip_bom.md); each row spans that BOM's low
+to high option, so the total below is a low-sum to high-sum range rather
+than a single build. The BOM's curated tiers are the better guide to what
+an actual build costs: **~$400–900 low, ~$1,200–2,200 recommended**.
 
 | Category | Items | Cost (USD) |
 |----------|-------|------------|
-| **Chip Fabrication** | Desktop CNC (Nomad/Bantam), PMMA, end mills, adhesive, 3D printer + resin | $2,000 - 3,500 |
+| **Chip Fabrication** | CNC (hobby 3018-class is sufficient at 800 µm), PMMA, 1/32" end mills, adhesive, 3D printer + resin | $500 - 1,900 |
 | **Fluid Handling** | 2× Mariotte bottles, 2× motorised Z axes, tubing, fittings | $150 - 350 |
 | **Observation** | Machine vision camera, lens, LED illumination, mounting stage | $400 - 1,000 |
 | **Sensors** | Optional low-range differential sensor (axis position is the primary measurement — see §2.2) | $0 - 120 |
 | **Control/DAQ** | Computer (if needed), microcontroller, cables, proto boards | $100 - 600 |
 | **Consumables** | Oils, surfactant, dyes, cleaning supplies, safety gear | $100 - 200 |
 
-**Total: $2,750 - 5,450** — revised 2026-08. Hydrostatic actuation removed
-$1,350–2,650 of pressure-control hardware and $300–780 of pressure sensors.
+**Total: $1,250 - 4,200** — revised 2026-08. Two changes, both from
+simulation results rather than shopping around: hydrostatic actuation removed
+$1,350–2,650 of pressure-control hardware and $300–780 of pressure sensors,
+and the 800 µm scale-up demoted the milling machine from a precision desktop
+CNC to "anything that holds a 0.8 mm tool without chatter" (endmill stiffness
+goes as d⁴, so 1/32" is 16× stiffer than the 1/64" the original design
+needed). See [`chip_bom.md`](chip_bom.md) for the three-tier breakdown.
 
 **For this build specifically the gap is ~$200–600**: the CNC, laser, resin
 printer and the donor 3D printer are already on hand, so what is actually
