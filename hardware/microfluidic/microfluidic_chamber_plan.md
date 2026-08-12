@@ -124,52 +124,132 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
 
 ### 2.2 Fluid Actuation System
 
-**Architecture: Pressure-Driven (Recommended for Config 1)**
+> **Revised 2026-08.** This section originally specified electronic pressure
+> controllers (Fluigent/Elveflow class) on a 0–200 kPa range, fed by a
+> compressor or N₂ cylinder, at $1,500–3,000. That followed from the
+> original 100–200 µm geometry. **The 600–800 µm scale-up in §2.1 changed
+> the requirement by more than an order of magnitude and the section had not
+> caught up.** Drive pressure scales as 1/w², so the whole operating point
+> now sits in hydrostatic reach:
+>
+> | Channel | P_cont | P_disp | as a water column |
+> |---|---|---|---|
+> | 400 µm | 3900 Pa | 1800 Pa | 40 / 18 cm |
+> | 600 µm | 1730 Pa | 830 Pa | 17.6 / 8.5 cm |
+> | **800 µm** | **980 Pa** | **490 Pa** | **10.0 / 5.0 cm** |
+>
+> Measured, not designed — see
+> [`results/scaleup_2026-07`](../../simulation/openfoam/results/scaleup_2026-07/).
+> At 150 µm you needed tens of kPa, i.e. metres of water, and an electronic
+> regulator was the only option. At 800 µm the entire operating point is a
+> bottle 10 cm above the chip.
 
-Why pressure control over syringe pumps?
-- More similar to existing wind tunnel design (pressure → flow)
-- Creates richer causal dynamics (pressure → resistance → flow)
-- Cheaper at medium quality level ($500-1500 per channel vs $2000+ for good pumps)
-- Better for perturbation experiments
+**Architecture: pressure-driven, hydrostatic, motorised.**
+
+Pressure control (rather than syringe pumps) is still the right default, and
+for a sharper reason than the original "richer dynamics" argument. The
+cyclicity work
+([`results/cyclicity_2026-07`](../../simulation/openfoam/results/cyclicity_2026-07/))
+showed **the actuation mode decides the causal graph**: with pressure
+sources the flow rates are emergent and mutually determined through the
+shared junction, so the equilibrium graph contains a cycle; with syringe
+pumps Q is imposed, the incoming edges are severed, and the graph is close
+to a DAG — a syringe pump acts as a physical do-operator. Both are worth
+having. **Actuation mode is an experimental variable, not a procurement
+decision.**
 
 **Components:**
-- Pressure source: Lab air compressor or regulated N₂ cylinder (150-400 kPa range)
-- 2× Electronic pressure controllers (continuous and dispersed phases)
-  - Range: 0-200 kPa (0-30 psi)
-  - Resolution: <0.1 kPa
-  - Response time: <100 ms
-  - Options: Fluigent, Elveflow (high-end) or DIY Arduino + proportional valves (budget)
-- 2× Sealed liquid reservoirs (pressure vessels)
-- Low-compliance tubing (PEEK or Teflon, 1/16" OD)
-- 3× Pressure sensors (0-200 kPa range, digital output)
-  - Honeywell HSC or similar
-  - Resolution: <0.1 kPa
-  - Located at: continuous inlet, dispersed inlet, outlet
 
-**Alternative: Syringe Pump Control**
-- For Configuration 2
-- Allows direct control of flow rates (different causal graph)
-- More expensive but more deterministic
+- **2× Mariotte bottles** — 0.5 L Nalgene, sealed cap, with a vertical open
+  air tube through the cap whose lower end sits at a fixed depth. Delivered
+  head is set by the *tube tip* elevation, not the liquid surface, so it
+  stays constant as the bottle drains.
+
+  Not a nicety. A plain reservoir's head falls as it empties: at the 800 µm
+  flow rates, a 63 mm-diameter bottle drops **14.7 mm/hour on the oil side
+  and 4.3 mm/hour on the water side**. Against a 10 cm and 5 cm column that
+  is 15% and 9% per hour — enough to walk out of the ±30% droplet-forming
+  window (§5.1) in two to four hours, mid-protocol.
+
+- **2× motorised vertical axes** to set the two heads independently. A
+  retired 3D printer's Z axis is ideal and free; otherwise a NEMA17 + T8
+  leadscrew rail is ~$30–50 each. Travel of 200 mm covers the full window
+  several times over.
+
+- **Off-chip flow resistors** — both resistors are off-chip in the v2 design
+  (a millable on-chip water resistor would need sub-250 µm features).
+  Sized from the simulated operating point via Hagen–Poiseuille,
+  R = 128 µL/(πd⁴), after subtracting the ~6 mm of on-chip channel:
+
+  | Phase | needs | first-cut tubing |
+  |---|---|---|
+  | Oil (50 cSt, µ = 0.048) | 5.7 × 10¹⁰ Pa·s/m³ | **≈ 19 cm of 1/16" ID** |
+  | Water (µ = 0.001) | 1.3 × 10¹¹ Pa·s/m³ | **≈ 20 cm of 0.5 mm ID** |
+
+  These are analytic first cuts for the **800 µm** chip; trim on the bench
+  to match measured flow. (For 600 µm the equivalents are ~12 cm of 1.0 mm
+  ID oil-side and ~23 cm of 0.4 mm ID water-side.) Note the oil resistor is
+  short because 50 cSt silicone oil is doing most of the work already — the
+  chip itself is 26% of the oil circuit but under 1% of the water circuit,
+  which is why the water side needs a deliberate resistor and the oil side
+  barely does.
+
+- **Tubing/fittings**: Luer-lock to barb, 1/16" OD PTFE or Tygon.
+
+**Instrumentation: the actuator is the sensor.**
+
+The original plan listed 3× pressure sensors on a 0–200 kPa range. At these
+pressures that is worse than useless: an MPX5010-class transducer (0–10 kPa,
+±2.5% FS) is **±250 Pa**, which is half the entire water-side operating
+pressure. A **0.1 mm step on the Z axis is 0.98 Pa** — about 250× better.
+
+So the manipulated variable and its measurement are the same quantity:
+record axis position, and P_cont/P_disp follow from geometry with no
+calibration drift. A single low-range differential sensor across the chip is
+still worth having to confirm the junction is behaving, but it is not on the
+critical path and it is not how the SET variables get logged.
+
+**Alternative: syringe pumps.** Retained for Configuration 2 — see the
+cyclicity note above. This is the DAG arm of the experiment, not a fallback.
 
 ### 2.3 Observation System
 
-**Primary: High-Speed Camera**
-- Resolution: 1280×1024 minimum  
-- Frame rate: **>200 fps** (critical for droplet tracking)
-- Sensor: CMOS (global shutter preferred)
-- Interface: USB3 or GigE
-- Recommended: Basler, FLIR, or IDS mid-range industrial camera (~$400-800)
+> **Revised 2026-08, same root cause as §2.2.** The specs below originally
+> assumed 50–200 µm droplets. At 800 µm the measured slug is **1080 µm**
+> moving at **33.5 mm/s** at **9.1 Hz**
+> ([`results/mill3d800_2026-08`](../../simulation/openfoam/results/mill3d800_2026-08/)),
+> so the optics requirement inverts: you need *de*magnification, not 5–10×.
+
+**Primary: Machine-Vision Camera**
+- Resolution: 1280×1024 is ample — the binding constraint is not pixels
+- Frame rate: **≥140 fps** (15 frames per 110 ms formation period). 120 fps
+  is marginal; 200 fps is comfortable. Avoid small-integer multiples of the
+  droplet rate, which sample the same phase every cycle and hide jitter.
+- Sensor: mono CMOS (Bayer costs 3× the light and softens the edges you are
+  measuring). Global shutter preferred but not required — see illumination.
+- Recommended: IMX273-class USB3 (~$150–300), or a Raspberry Pi Global
+  Shutter Camera (~$50) with the readout cropped to the channel strip.
 
 **Optics:**
-- 5-10× magnification (to resolve 50-200 μm droplets)
-- C-mount lens or microscope objective
-- Working distance: >5mm (to fit chip/tubing)
+- **~0.5× magnification** for a 10 × 6 mm field of view at 5–10 µm/px —
+  *not* 5–10×. A 1440×1080 sensor with 3.45 µm pixels at 0.5× gives
+  6.9 µm/px over 10 × 7.5 mm.
+- Stop down to **f/8–f/11**: depth of field must exceed the 800 µm channel
+  depth, since the interface is a vertical wall spanning it.
+- Plain C-mount lens. Telecentric optics are the usual metrology reflex but
+  are not needed here — the chip is planar at a fixed working distance.
 
 **Illumination:**
-- Backlight (transmitted light) - best for droplet edges
-- Bright LED panel (~100W equivalent) or ring light
-- Diffuser for uniform illumination
-- Stable power supply (no flickering)
+- Backlight (transmitted light) — best for droplet edges
+- **Exposure ≤ 150–320 µs.** At 33.5 mm/s the interface moves 33.5 µm per
+  millisecond, so this, not frame rate, is the hard constraint — and it is a
+  lighting problem, not a camera problem.
+- **Strobe the LED for 50–100 µs per frame** in a light-tight enclosure. The
+  flash becomes the shutter: blur is set by pulse width, peak flux can be
+  20–50× the continuous rating at that duty cycle (which pays for f/11), and
+  a rolling-shutter sensor becomes usable if exposure is set to the frame
+  period so every row is integrating when the flash fires.
+- Diffuser for uniform illumination; stable supply (no mains flicker)
 
 **Mounting:**
 - Rigid optical breadboard or microscope stage
@@ -358,7 +438,7 @@ class MicrofluidicModel:
 Following the pattern from `wt_test_v1` and `lt_test_v1`:
 
 **Experiment 1: Pressure-Flow Calibration**
-- Vary P_cont from 0-150 kPa, measure Q_cont (by weighing outlet over time)
+- Vary P_cont from 0–2 kPa (0–20 cm H₂O), measure Q_cont (by weighing outlet over time)
 - Repeat for P_disp
 - Validates Hagen-Poiseuille model
 - Measures channel resistance
@@ -617,15 +697,16 @@ Use existing protocol format from wind tunnel:
 ```
 # Example protocol: formation_regimes.txt
 
-# Set all parameters to baseline
-SET,P_cont,50000      # 50 kPa
-SET,P_disp,30000      # 30 kPa
+# Set all parameters to baseline (800 um chip -- see 2.2; these are
+# hydrostatic heads, so P_cont 980 Pa == a 10.0 cm column)
+SET,P_cont,980        # 980 Pa  = 10.0 cm H2O
+SET,P_disp,490        # 490 Pa  =  5.0 cm H2O
 SET,P_out,0           # Atmospheric
 WAIT,5000             # Wait 5 seconds to stabilize
 
-# Sweep dispersed phase pressure
+# Sweep dispersed phase pressure across the measured +-30% window
 SET,flag,0
-SET,P_disp,10000
+SET,P_disp,345        # 3.5 cm H2O
 WAIT,3000
 MSR,100,50           # 100 measurements, 50ms interval (record video during this)
 
@@ -821,13 +902,18 @@ Based on BOM (medium-cost options):
 | Category | Items | Cost (USD) |
 |----------|-------|------------|
 | **Chip Fabrication** | Desktop CNC (Nomad/Bantam), PMMA, end mills, adhesive, 3D printer + resin | $2,000 - 3,500 |
-| **Fluid Handling** | Pressure controllers (2×), compressor, reservoirs, tubing, fittings | $1,500 - 3,000 |
+| **Fluid Handling** | 2× Mariotte bottles, 2× motorised Z axes, tubing, fittings | $150 - 350 |
 | **Observation** | Machine vision camera, lens, LED illumination, mounting stage | $400 - 1,000 |
-| **Sensors** | Pressure sensors (3×) with interface hardware | $300 - 900 |
+| **Sensors** | Optional low-range differential sensor (axis position is the primary measurement — see §2.2) | $0 - 120 |
 | **Control/DAQ** | Computer (if needed), microcontroller, cables, proto boards | $100 - 600 |
 | **Consumables** | Oils, surfactant, dyes, cleaning supplies, safety gear | $100 - 200 |
 
-**Total: $4,400 - 9,200**
+**Total: $2,750 - 5,450** — revised 2026-08. Hydrostatic actuation removed
+$1,350–2,650 of pressure-control hardware and $300–780 of pressure sensors.
+
+**For this build specifically the gap is ~$200–600**: the CNC, laser, resin
+printer and the donor 3D printer are already on hand, so what is actually
+missing is the camera-and-illumination chain plus bottle hardware.
 
 *(Simulation is OpenFOAM, which is free/open-source — no license line needed
 here anymore; see §4.)*
@@ -998,9 +1084,12 @@ exogenous_zeros = {
     "P_out": 0,  # Atmospheric
 }
 
-# Parameter sweep
-P_cont_values = [20000, 40000, 60000, 80000, 100000]  # Pa (20-100 kPa)
-P_disp_values = [10000, 20000, 30000, 40000, 50000]   # Pa (10-50 kPa)
+# Parameter sweep -- 5x5 at +-30% about the 800 um reference point.
+# The window was measured at 600 um (25/25 cells form droplets at +-30%,
+# results/window600_2026-07) and its edges were never reached, so this grid
+# sits comfortably inside verified territory. Pa; hydrostatic cm in comments.
+P_cont_values = [690, 830, 980, 1130, 1270]   # 7.0  8.5 10.0 11.5 12.9 cm H2O
+P_disp_values = [345, 415, 490,  565,  635]   # 3.5  4.2  5.0  5.8  6.5 cm H2O
 
 protocol_name = "formation_regimes.txt"
 print(f"Generating {protocol_name}...")
