@@ -12,10 +12,18 @@ CNC-milled PMMA (single 1/64" endmill, 0.4 mm deep), 3M 468MP bonding,
 | Feature | Value | Note |
 |---|---|---|
 | All channels | 400 µm wide × 400 µm deep | one 1/64" endmill, two 0.2 mm passes |
-| Oil feed | 46 mm serpentine → junction | modelled straight in sim; fold to fit blank |
+| Oil feed | ≥ 2 mm from port to junction | **nothing to mill beyond the approach** — see below |
 | Water leg | ≥ 2 mm from port to junction | |
 | Outlet | ≥ 4 mm past junction | observation window: expect 2–3 slugs in view |
-| Water feed resistance | **~31 cm of 0.3 mm-ID microbore tubing** upstream of the water port | water is too thin for a millable on-chip resistor; sim models it as an 80 µm × 27 mm channel with identical ΔP |
+
+**Both flow resistors are off-chip tubing** (plan §2.1) — neither is milled
+into the blank. The simulation carries them as in-domain channels (a 46 mm
+oil feed, an 80 µm × 27 mm water leg) purely because a pressure boundary
+condition needs the resistance to live somewhere and the solver has no
+lumped-resistance BC; the junction only ever sees a flow rate. Tubing is
+sized in the BOM: at 800 µm, ~19 cm of 1/16" ID oil-side and ~20 cm of
+0.5 mm ID water-side, which together with the chip's own channels reproduce
+the simulated path resistance to 4.6%.
 
 ## Operating point (sim reference values)
 

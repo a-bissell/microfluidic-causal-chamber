@@ -93,7 +93,13 @@ def process(case_dir, w_main_um, x_junction_um, growth_threshold_um, min_track_f
                           x_junction_m=(x_junction_um * 1e-6) if x_junction_um is not None else None)
     df, _ = ex.process_case()
     if df.empty:
-        return {"n_tracks": 0, "n_complete": 0}
+        # Must match the (summary, tracks) shape of the normal return. Callers
+        # unpack two values; a bare dict unpacks into its two KEYS as strings,
+        # so the caller silently binds summary="n_tracks" and then dies on
+        # .get() several lines later, pointing at the wrong thing entirely.
+        # Only reachable when a case forms nothing at all -- which is exactly
+        # what a wetting/regime sweep is built to produce.
+        return {"n_tracks": 0, "n_complete": 0}, pd.DataFrame(columns=["L_um", "w_um"])
 
     df = df[df.centroid_y < w_main_um]
     tracks = link_tracks(df, max_advance_um)
