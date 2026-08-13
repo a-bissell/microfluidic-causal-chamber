@@ -1,7 +1,14 @@
 # Wetting and interfacial tension: the two unmeasured assumptions — 2026-08
 
-**Status: study A complete. Studies B, C and the 3D spot-check are running;
-this file will grow.**
+**Status: studies A, A2 and B complete (2D). Study C and the 3D spot-check
+are running; this file will grow.**
+
+**Headline, in one line each.** The wall must be oil-wet by **105–120°**,
+not the ≥150° the docs demand — but *neutral* wetting (90°) fails, so the
+requirement is real, just 45° lower than advertised. And the chip needs
+**σ ≳ 20 mN/m** to make the plugs it was specced for; below ~8 mN/m
+nothing detaches at all. Both numbers are 2D and carry the caveat in
+"What this does not settle".
 
 ## Why
 
@@ -87,6 +94,112 @@ to share the floor's contact angle, so it still cannot test an oil-wet PMMA
 floor against a water-wet adhesive ceiling. That asymmetry needs a
 full-depth mesh with split wall patches, and remains unbuilt.
 
+## Study A2 — where the wetting cliff actually is
+
+Study A found no boundary down to 120°, so four more cases went below it:
+θ = 60, 75, 90, 105°, same σ and drive. `A2_theta_low_results.csv`.
+
+| θ₀ | 60 | 75 | 90 | 105 | 120 | 130 | 140 | 150 | 160 | 170 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| | thread | thread | thread | thread | **plugs** | plugs | plugs | plugs | plugs | plugs |
+
+**The cliff is between 105° and 120°.** Every case at or below 105° is a
+continuous thread — water enters and never pinches off, the detection
+spanning 3960 µm of the 4000 µm outlet in all four.
+
+So the original claim was not imaginary; it was mislocated by about 45°.
+The rule in `simulation/openfoam/README.md` — *"walls must be strongly
+oil-wet, theta0 ≥ 150"* — asks for roughly 45° more than the physics needs.
+But the requirement is real and it is not merely "don't be water-wet":
+**neutral wetting (90°) fails too.** The wall has to be meaningfully
+oil-wet, just not extremely so.
+
+That matters for the hardware, because plausible PMMA-under-Span-80-oil
+values sit in the 120–150° range — *above* the cliff, but not by a wide
+margin. 120° works and is also about where the cliff is. This is a
+"probably fine, worth measuring" result, not a "stop worrying" one.
+
+## Study B — σ with the drive left at the designed 980/490 Pa
+
+What a builder actually sees if they set the specified 10.0/5.0 cm of water
+and σ is not 0.03. `B_sigma_fixedP_results.csv`.
+
+| σ (mN/m) | regime | L/w | speed (mm/s) | rate (Hz) | entry 2σ/w |
+|---|---|---|---|---|---|
+| 5 | **thread** | — | — | — | 12.5 Pa |
+| 8 | marginal | 1.088 | 24.95 | 12.50 | 20 Pa |
+| 12 | marginal | 1.075 | 32.22 | 11.11 | 30 Pa |
+| 20 | plugs | 1.400 | 29.85 | 7.14 | 50 Pa |
+| 30 | plugs | 1.550 | 28.64 | 5.63 | 75 Pa |
+| 40 | marginal | 1.550 | 21.19 | 5.00 | 100 Pa |
+
+Three regimes:
+
+- **σ ≥ 20** — proper plugs, L/w 1.4–1.55, regular trains.
+- **σ = 8–12** — droplets form and detach, but at L/w ≈ 1.08 they are
+  barely plugs at all, sitting on the squeezing/dripping boundary, and
+  forming irregularly enough to score `marginal`. Garstecki's
+  L/w = 1 + αq, which the design math uses, stops applying here.
+- **σ ≤ 5** — nothing detaches.
+
+**Droplet rate is the calibration variable.** It is monotonic across the
+whole working range, 12.5 → 5.0 Hz for σ = 8 → 40, a 2.5× span. L/w also
+responds but saturates above 20 mN/m. **Speed does not work** — it is
+non-monotonic, peaking at σ = 12 — which is most likely noisy speed
+estimates in the irregular marginal cases rather than physics.
+
+Two things are unresolved. σ = 40 scores `marginal` at the *top* end on
+length spread with only 3 droplets in 0.6 s; that smells like run length
+rather than physics, but it has not been shown. And the measured period is
+quantised to the 5 ms write interval, so rate resolution is ±5.5% at 11 Hz
+and ±2.8% at 5.6 Hz.
+
+**The consequence for the bench.** If 2% Span 80 puts the real interface
+anywhere near 5–10 mN/m, this chip at its designed head does not produce
+the plugs the repo is calibrated on. The fix is to *lower* the columns in
+proportion to σ (ΔP ~ Ca·σ·L/w², so ~2 cm rather than 10 at σ = 6 mN/m) —
+which study C is testing. It is emphatically **not** to push harder: a
+thread is stabilised, not broken, by more water pressure.
+
+## Classifier: a thread can masquerade as a plug
+
+The first pass of `analyze_fluid_sweep.py` tested for `thread` only when a
+case produced **zero** complete droplet tracks. That is not sufficient. A
+continuous thread satisfies every maturity test the extractor applies — its
+length plateaus, because it is pinned at the channel length, and its
+centroid advances — so it arrives at the classifier looking like a very
+long, very regular plug.
+
+It reported σ = 5 mN/m as `plugs`, L/w = 4.95, at a suspiciously exact
+20.000 Hz, with the median "slug" measuring 3960 µm of a 4000 µm outlet.
+θ = 105° likewise came back as L/w = 2.61 plugs.
+
+The fix tests whether a slug ever **separates from the junction**: track the
+upstream edge (centroid − length/2) across mature frames and ask how far
+past the junction it ever gets. A detached slug marches downstream; a thread
+stays welded. The separation is not subtle —
+
+| | detach distance |
+|---|---|
+| σ = 5 mN/m (thread) | 152 µm |
+| θ = 105° (thread) | 49 µm |
+| σ = 30 mN/m (plugs) | 2686 µm |
+
+— roughly 17–55×, against a threshold of one channel width. Both false
+plugs are now correctly `thread`, and the nominal σ = 30 case still
+reproduces the reference exactly (L/w 1.550, 28.64 mm/s, 5.63 Hz).
+
+Had this gone unnoticed it would have corrupted study B specifically, since
+study B *is* the calibration curve: a fit through "L/w = 4.95 at 20 Hz for
+σ = 5" would have been precise, confident and entirely wrong.
+
+**Caveat on study A.** Its raw VTK was purged for disk before this fix
+existed, so its six cases were classified by the older logic and cannot be
+re-run through the new one without recomputing (~18 h). Its θ = 160° cell is
+independently confirmed by study B's σ = 30 case — identical configuration,
+reproduces exactly — and all six had L/w ≈ 1.55 with normal speeds, so they
+are near-certainly genuine plugs. But that is inference, not a re-check.
+
 ## A bug worth knowing about, since it affects what you can trust
 
 `tjunction_2d_mill/gen_blockmesh.py` accepted `--w-main` but never emitted
@@ -107,12 +220,13 @@ produce cases that do not.
 
 ## Running
 
-| Study | Varies | Drive | Purpose |
+| Study | Varies | Drive | Status |
 |---|---|---|---|
-| A2 | θ = 60/75/90/105° | fixed 980/490 Pa | study A found no boundary down to 120°; PMMA under water in air is ~70°, so the edge is being hunted below |
-| B | σ = 5–40 mN/m | fixed 980/490 Pa | calibration curve: what you see on the bench, and what σ it implies |
-| C | σ = 5–40 mN/m | scaled ∝ σ | does retuning the head to P ∝ σ recover the design point? |
-| D | θ = 120 vs 160 | velocity-driven, 3D | the test that closes the 2D wall gap |
+| A | θ = 120–170° | fixed 980/490 Pa | ✅ all plugs, no boundary found |
+| A2 | θ = 60–105° | fixed 980/490 Pa | ✅ all thread — cliff bracketed to 105–120° |
+| B | σ = 5–40 mN/m | fixed 980/490 Pa | ✅ calibration curve; cliff between 5 and 8 mN/m |
+| C | σ = 5–40 mN/m | scaled ∝ σ | running — does retuning the head to P ∝ σ recover the design point? |
+| D | θ = 120 vs 160 | velocity-driven, 3D | running — the test that closes the 2D wall gap |
 
 Note D is **velocity-driven** — the 3D case has no feed resistors, so a
 pressure BC has nothing to drop across. That closes the flow-rate channel

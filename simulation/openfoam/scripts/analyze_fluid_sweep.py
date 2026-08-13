@@ -111,11 +111,21 @@ def measure(case_dir: Path, w_um: float, max_advance_um: float):
         idx = np.where((np.abs(np.diff(Ls)) < 0.05 * w_um) & (np.diff(x) > 0))[0] + 1
         speed = (np.median(np.diff(x[idx]) / np.diff(t[idx])) * 1e-3
                  if len(idx) >= 2 else np.nan)
-        rows.append({"first_t": tr[0][0], "L_um": L, "w_um": W, "speed_mm_s": speed})
+        # Did this "slug" ever separate from the junction? A continuous thread
+        # satisfies every maturity test -- its length plateaus (pinned at the
+        # channel length) and its centroid advances -- so length and speed
+        # alone cannot tell it from a plug. Its UPSTREAM EDGE, though, stays
+        # welded to the junction, while a detached slug's marches downstream.
+        lead = (x - Ls / 2.0)[idx] if len(idx) else (x - Ls / 2.0)
+        rows.append({"first_t": tr[0][0], "L_um": L, "w_um": W, "speed_mm_s": speed,
+                     "lead_max_um": float(np.max(lead)) if len(lead) else np.nan})
 
     res = pd.DataFrame(rows)
     out["n_complete"] = len(res)
     if len(res):
+        # How far downstream the most-separated slug's upstream edge ever got,
+        # measured from the junction. ~0 means nothing ever detached.
+        out["detach_um"] = float(np.nanmax(res.lead_max_um) - (2000.0 + w_um))
         out["L_um"] = float(res.L_um.median())
         out["L_over_w"] = out["L_um"] / w_um
         out["speed_mm_s"] = float(np.nanmedian(res.speed_mm_s))
@@ -127,8 +137,15 @@ def measure(case_dir: Path, w_um: float, max_advance_um: float):
     return out, res
 
 
-def classify(m, spread_tol, res):
+def classify(m, spread_tol, res, w_um):
     n = m.get("n_complete", 0)
+    # Tested BEFORE the track count, not only when there are no tracks. A
+    # thread passes every maturity test and arrives here looking like a long
+    # plug: at sigma = 5 mN/m and the designed drive it reported L/w = 4.95 at
+    # a suspiciously exact 20.000 Hz, with the median "slug" the full 3960 um
+    # of outlet. Nothing detached; the whole column was one stream.
+    if n and m.get("detach_um", 0.0) < w_um:
+        return "thread"
     if n == 0:
         # A thread spans the outlet; no-entry leaves it dry. The threshold is
         # deliberately high (0.8 of the outlet) so a single large-but-finite
@@ -155,6 +172,8 @@ def main():
     ap.add_argument("--speed-ceiling-mm-s", type=float, default=60.0)
     ap.add_argument("--spread-tol", type=float, default=0.15)
     ap.add_argument("--out-dir", type=Path, default=None)
+    ap.add_argument("--tag", default=None,
+                    help="Output filename stem (default: the sweep directory's name)")
     args = ap.parse_args()
 
     cases = json.loads((args.sweep_dir / "cases.json").read_text())
@@ -169,7 +188,7 @@ def main():
         # varies across a scale-with-sigma study, so this must be per case.
         max_adv = args.speed_ceiling_mm_s * 1e3 * c["write_interval"]
         m, res = measure(d, w, max_adv)
-        verdict = classify(m, args.spread_tol, res)
+        verdict = classify(m, args.spread_tol, res, w)
         speed = m.get("speed_mm_s", np.nan)
         rows.append({
             "name": c["name"], "sigma_N_m": c["sigma"], "theta0_deg": c["theta0"],
@@ -188,6 +207,7 @@ def main():
                             if speed == speed else np.nan),
             "entry_pressure_Pa": round(2 * c["sigma"] / (w * 1e-6), 1),
             "max_detection_um": round(m.get("max_detection_um", 0.0), 1),
+            "detach_um": round(m.get("detach_um", float("nan")), 1),
         })
         print(f"  {c['name']}: {verdict:9s} n={rows[-1]['n_droplets']} "
               f"L/w={rows[-1]['L_over_w']:.3f} f={rows[-1]['f_Hz']:.2f} Hz"
@@ -199,8 +219,11 @@ def main():
     df = pd.DataFrame(rows)
     out_dir = args.out_dir or args.sweep_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    tag = {"theta": "A_theta", "sigma-fixed": "B_sigma_fixedP",
-           "sigma-scaled": "C_sigma_scaledP"}[args.mode]
+    # Named after the SWEEP DIRECTORY, not the mode. Two studies can share a
+    # mode -- the theta boundary hunt runs as A_theta and again as
+    # A2_theta_low -- and keying the filename off the mode would have the
+    # second silently overwrite the first's committed results.
+    tag = args.tag or args.sweep_dir.resolve().name
     df.to_csv(out_dir / f"{tag}_results.csv", index=False)
 
     counts = df.regime.value_counts().to_dict()
