@@ -128,6 +128,14 @@ def measure(case_dir: Path, w_um: float, max_advance_um: float):
         out["detach_um"] = float(np.nanmax(res.lead_max_um) - (2000.0 + w_um))
         out["L_um"] = float(res.L_um.median())
         out["L_over_w"] = out["L_um"] / w_um
+        # Slug WIDTH matters in 3D in a way it cannot in 2D: a square channel
+        # leaves oil-filled corner gutters that the slug slides past, so the
+        # slug runs faster than the superficial velocity. How much depends on
+        # how much of the cross-section the water claims -- which is exactly
+        # what contact angle controls. With flow rate imposed, this is the
+        # only route by which theta can move slug speed at all.
+        out["slug_w_um"] = float(res.w_um.median())
+        out["slug_w_over_w"] = out["slug_w_um"] / w_um
         out["speed_mm_s"] = float(np.nanmedian(res.speed_mm_s))
         starts = sorted(res.first_t)
         if len(starts) >= 2:
@@ -192,14 +200,23 @@ def main():
         speed = m.get("speed_mm_s", np.nan)
         rows.append({
             "name": c["name"], "sigma_N_m": c["sigma"], "theta0_deg": c["theta0"],
+            # Velocity-driven cases (the 3D mill geometry, which has no feed
+            # resistors for a pressure BC to drop across) carry no pressures
+            # at all -- there is no column height to report.
             "P_cont_Pa": c["P_cont"], "P_disp_Pa": c["P_disp"],
-            "P_cont_cmH2O": round(c["P_cont"] / PA_PER_CM_H2O, 2),
-            "P_disp_cmH2O": round(c["P_disp"] / PA_PER_CM_H2O, 2),
+            "P_cont_cmH2O": (round(c["P_cont"] / PA_PER_CM_H2O, 2)
+                             if c.get("P_cont") is not None else np.nan),
+            "P_disp_cmH2O": (round(c["P_disp"] / PA_PER_CM_H2O, 2)
+                             if c.get("P_disp") is not None else np.nan),
+            "U_oil_m_s": c.get("U_oil", np.nan),
+            "U_water_m_s": c.get("U_water", np.nan),
             "end_time_s": c["end_time"],
             "regime": verdict,
             "n_droplets": m.get("n_complete", 0),
             "L_um": m.get("L_um", np.nan), "L_over_w": m.get("L_over_w", np.nan),
             "speed_mm_s": speed, "f_Hz": m.get("f_Hz", np.nan),
+            "slug_w_um": m.get("slug_w_um", np.nan),
+            "slug_w_over_w": m.get("slug_w_over_w", np.nan),
             "period_ms": m.get("period_ms", np.nan),
             # Ca on the MEASURED slug speed, not the design velocity -- that is
             # the number that says which regime the chip is actually in.

@@ -1,14 +1,19 @@
 # Wetting and interfacial tension: the two unmeasured assumptions — 2026-08
 
-**Status: studies A, A2 and B complete (2D). Study C and the 3D spot-check
-are running; this file will grow.**
+**Status: studies A, A2, B and the 3D spot-check (D) complete. Study C is
+running; this file will grow.**
 
 **Headline, in one line each.** The wall must be oil-wet by **105–120°**,
 not the ≥150° the docs demand — but *neutral* wetting (90°) fails, so the
 requirement is real, just 45° lower than advertised. And the chip needs
 **σ ≳ 20 mN/m** to make the plugs it was specced for; below ~8 mN/m
-nothing detaches at all. Both numbers are 2D and carry the caveat in
-"What this does not settle".
+nothing detaches at all.
+
+The θ finding is **confirmed in 3D** (study D): at θ = 120° the chip still
+forms plugs with all four walls wetting, so it is not a 2D artifact. The σ
+numbers are 2D only. Neither can yet test the real asymmetry — an oil-wet
+PMMA floor against a possibly water-wet 468MP ceiling — which needs a
+full-depth mesh with split wall patches and remains unbuilt.
 
 ## Why
 
@@ -87,7 +92,8 @@ A 2D sweep is therefore structurally biased toward finding θ unimportant:
 half the wetted perimeter is missing from the model. Study A bounds the
 problem; it does not close it. The 3D spot-check (θ = 120 vs 160 on the
 44,000-cell half-depth mesh, where floor and ceiling are real walls) is the
-test that carries weight, and it is running.
+test that carries weight — **see study D below, which ran it and found
+θ = 120° still forms plugs.** The 2D result survived.
 
 Even that leaves one gap: the 3D case's symmetry plane forces the ceiling
 to share the floor's contact angle, so it still cannot test an oil-wet PMMA
@@ -161,6 +167,71 @@ proportion to σ (ΔP ~ Ca·σ·L/w², so ~2 cm rather than 10 at σ = 6 mN/m) �
 which study C is testing. It is emphatically **not** to push harder: a
 thread is stabilised, not broken, by more water pressure.
 
+## Study D — the 3D spot-check, θ = 120 vs 160
+
+The test that closes the 2D wall gap: the 44,000-cell half-depth mesh, where
+the floor is a real wall and the ceiling its mirror, so `theta0` acts on the
+full wetted perimeter. Velocity-driven (this geometry has no feed resistors),
+6-way MPI, 5.1 h and 4.9 h respectively. `D_3d_theta_results.csv`.
+
+**Validity check first.** The θ = 160° case reproduces
+`mill3d800_2026-08` essentially exactly — L/w 1.350 vs 1.350, slug width
+0.950 w vs 0.950 w, 9.0909 Hz vs 9.091 Hz, 33.37 vs 33.50 mm/s (0.4%).
+Configuration has not drifted, so θ = 120 vs 160 is a controlled comparison.
+
+| | θ = 120° | θ = 160° | how much to trust it |
+|---|---|---|---|
+| regime | **plugs** | **plugs** | high — detach 2910 / 2871 µm |
+| L / w | 1.30 | 1.35 | one 40 µm cell apart; indistinguishable |
+| droplet volume | 422 nL | 407 nL | 4%, near resolution |
+| slug speed | 27.00 mm/s | 33.37 mm/s | 19% — many frames, real |
+| water touching y-walls | 26.2 nL (6%) | 6.0 nL (1%) | **4.4×** — real |
+| droplet rate | 6.90 Hz | 9.09 Hz | only 3–4 gaps — weak |
+
+**θ = 120° forms plugs in 3D.** The 2D result survives the test designed to
+break it, so `theta0 ≥ 150` is not merely a 2D artifact — it is wrong.
+
+θ is not inert, though. It wets **4.4× more wall**, which is the mechanism
+the original claim was reaching for: present, measurable, and nowhere near
+runaway. Enough to add drag and slow the slugs 19%; nothing like a film.
+
+### Two mechanisms proposed and killed by measurement
+
+Worth recording, because both were plausible and both were wrong:
+
+1. **Depth occupancy.** The tracking extractor sees only x and y, so a
+   droplet could be deeper at θ = 120 and hold more water per unit length.
+   Killed by measuring z directly with `measure_3d_droplet_volume.py`:
+   **720 µm (0.90 w) in both.** Depth is not the variable.
+2. **Corner-gutter bypass.** A square channel leaves oil-filled corners the
+   slug slides past, and θ should govern how much cross-section the water
+   claims. *Not* cleanly killed, but the sign is wrong for the simple
+   argument. Restricted to fully-formed mid-channel droplets, θ = 120 is
+   **narrower** — 680 µm (0.85 w) against 760 µm (0.95 w) — so it leaves
+   *more* room in the gutters, yet it travels **slower**. More bypass area
+   with less bypass speed is the opposite of what the mechanism predicts.
+
+   Note this disagrees with the tracking extractor, which reports 0.95 w for
+   both. That figure includes still-forming droplets at the junction, which
+   span the full width and wash out the difference; the windowed direct
+   measurement is the one to trust. The gap is 2 cells, so it is resolvable
+   but not comfortably.
+
+**No mechanism is claimed for the speed difference.** Three candidate
+explanations have now been proposed and measured; two are dead and the third
+points the wrong way.
+
+A third reading — that 20% of the injected water was vanishing into a film,
+inferred from V × f falling short of the imposed Q — also did not survive.
+Essentially all water in the outlet is in discrete droplets (441.9 of
+441.9 nL at θ = 120). The shortfall was droplet-count granularity across a
+4-to-5-droplet run, not missing water.
+
+**What would settle the rate difference:** a longer run. At 0.6 s this case
+yields 4–5 droplets and therefore 3–4 inter-droplet gaps, which is too few
+to separate a real 24% frequency shift from sampling. The speed and
+wall-contact numbers do not depend on that and stand on their own.
+
 ## Classifier: a thread can masquerade as a plug
 
 The first pass of `analyze_fluid_sweep.py` tested for `thread` only when a
@@ -226,7 +297,7 @@ produce cases that do not.
 | A2 | θ = 60–105° | fixed 980/490 Pa | ✅ all thread — cliff bracketed to 105–120° |
 | B | σ = 5–40 mN/m | fixed 980/490 Pa | ✅ calibration curve; cliff between 5 and 8 mN/m |
 | C | σ = 5–40 mN/m | scaled ∝ σ | running — does retuning the head to P ∝ σ recover the design point? |
-| D | θ = 120 vs 160 | velocity-driven, 3D | running — the test that closes the 2D wall gap |
+| D | θ = 120 vs 160 | velocity-driven, 3D | ✅ both form plugs — the 2D finding holds with all four walls wetting |
 
 Note D is **velocity-driven** — the 3D case has no feed resistors, so a
 pressure BC has nothing to drop across. That closes the flow-rate channel

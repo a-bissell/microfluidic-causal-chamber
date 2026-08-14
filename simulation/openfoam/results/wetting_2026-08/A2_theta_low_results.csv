@@ -1,5 +1,5 @@
-name,sigma_N_m,theta0_deg,P_cont_Pa,P_disp_Pa,P_cont_cmH2O,P_disp_cmH2O,end_time_s,regime,n_droplets,L_um,L_over_w,speed_mm_s,f_Hz,period_ms,Ca_measured,entry_pressure_Pa,max_detection_um,detach_um
-s30_t60,0.03,60.0,980.0,490.0,9.99,4.99,0.6,thread,0,,,,,,,75.0,3960.0,
-s30_t75,0.03,75.0,980.0,490.0,9.99,4.99,0.6,thread,0,,,,,,,75.0,3960.0,
-s30_t90,0.03,90.0,980.0,490.0,9.99,4.99,0.6,thread,0,,,,,,,75.0,3960.0,
-s30_t105,0.03,105.0,980.0,490.0,9.99,4.99,0.6,thread,2,2090.000023599714,2.6125000294996426,2.5971222737460153,4.444444444444444,225.00000000000003,0.004155395637993625,75.0,3960.0,48.6
+name,sigma_N_m,theta0_deg,P_cont_Pa,P_disp_Pa,P_cont_cmH2O,P_disp_cmH2O,U_oil_m_s,U_water_m_s,end_time_s,regime,n_droplets,L_um,L_over_w,speed_mm_s,f_Hz,slug_w_um,slug_w_over_w,period_ms,Ca_measured,entry_pressure_Pa,max_detection_um,detach_um
+s30_t60,0.03,60.0,980.0,490.0,9.99,4.99,,,0.6,thread,0,,,,,,,,,75.0,3960.0,
+s30_t75,0.03,75.0,980.0,490.0,9.99,4.99,,,0.6,thread,0,,,,,,,,,75.0,3960.0,
+s30_t90,0.03,90.0,980.0,490.0,9.99,4.99,,,0.6,thread,0,,,,,,,,,75.0,3960.0,
+s30_t105,0.03,105.0,980.0,490.0,9.99,4.99,,,0.6,thread,2,2090.000023599714,2.6125000294996426,2.5971222737460153,4.444444444444444,250.00000823638402,0.31250001029548,225.00000000000003,0.004155395637993625,75.0,3960.0,48.6
