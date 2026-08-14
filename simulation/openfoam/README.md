@@ -289,10 +289,22 @@ writeInterval   0.001;  // Output frequency (s)
    water p0 must exceed the pressure at the junction (roughly the oil p0
    scaled by the fraction of channel length downstream of the junction),
    or the water phase stalls entirely.
-3. **Check contact angle**: walls must be strongly oil-wet — theta0 ≥ 150
-   in alpha.water. At theta0 ≤ 120 water spreads as a stable wall film
-   instead of necking.
-4. **Run longer**: at Ca ~ 0.03 the droplet period is ~0.04 s; `endTime`
+3. **Check contact angle**: walls must be oil-wet, but only moderately —
+   theta0 ≥ 120 in alpha.water, comfortably ≥ 130. A measured sweep from
+   60° to 170° at 800 µm puts the cliff between **105° and 120°**: 105° and
+   below give a continuous thread, 120° through 170° all form plugs and are
+   indistinguishable in slug length. 120° is confirmed to drip in 3D too.
+   Neutral wetting (90°) does fail, so this is a real requirement.
+   (An earlier revision of this list demanded theta0 ≥ 150 and said ≤ 120
+   spreads a stable wall film. That was wrong by ~45°: 160° had been chosen
+   *because* it dripped, and nothing between 120 and 160 had been run. See
+   `results/wetting_2026-08/`.)
+4. **Check interfacial tension**: `sigma` in transportProperties is an
+   assumption, not a measurement, and it sets the drive — ΔP ∝ Ca·σ·L/w².
+   At the designed 800 µm operating point, σ ≤ 5 mN/m gives no droplets at
+   all and 8–12 mN/m gives barely-plugs at L/w ≈ 1.08. If a case will not
+   drip, check sigma before reaching for the pressures.
+5. **Run longer**: at Ca ~ 0.03 the droplet period is ~0.04 s; `endTime`
    must cover several periods.
 
 ### Simulation Too Slow

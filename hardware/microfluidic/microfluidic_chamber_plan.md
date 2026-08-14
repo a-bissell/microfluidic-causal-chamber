@@ -101,11 +101,30 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
   may wet differently)
 - Outlet channel: same as main channel
 - Total chip size: scale up from ~25mm × 75mm accordingly
-- **Contact angle is load-bearing**: the simulation found wall wetting
-  determines dripping vs. jetting outright — 120° (a commonly-assumed
-  "oil-wet" default) produces a stable wall film with *no* droplets at all;
-  160° is what actually drips. If the real chip doesn't drip, check surface
-  treatment / PMMA wetting before suspecting geometry or flow rates.
+- **Contact angle: the walls must be oil-wet, but only moderately.** A
+  measured sweep from 60° to 170°
+  ([`wetting_2026-08`](../../simulation/openfoam/results/wetting_2026-08/))
+  puts the cliff between **105° and 120°**: at or below 105° the water
+  spreads as a continuous thread and never pinches off, while everything
+  from 120° to 170° forms plugs that are indistinguishable in slug length.
+  120° is confirmed to drip in 3D as well, with all four walls wetting.
+
+  Target ≥ 120°, comfortably ≥ 130°. Neutral wetting (90°) **fails**, so
+  this is a real requirement — just not the ≥ 150° an earlier revision of
+  this document demanded on the strength of a single tuned value. If the
+  real chip doesn't drip, check surface treatment / PMMA wetting before
+  suspecting geometry or flow rates.
+
+- **Interfacial tension is the bigger unknown, and it sets the column
+  height.** Combining ΔP ~ µUL/w² with U = Ca·σ/µ, the viscosity cancels and
+  **ΔP ~ Ca·σ·L/w²** — the head is directly proportional to σ. Every number
+  in this document assumes σ = 30 mN/m, a value that carries no citation and
+  sits at roughly the *bare* water/silicone-oil figure, which is a strange
+  place to land for a 2 wt% Span 80 load. If the true value is nearer
+  5–10 mN/m, the operating point moves bodily: at the designed 10.0/5.0 cm
+  head the chip produces barely-plugs (L/w ≈ 1.08) at 8–12 mN/m and
+  **nothing at all** below ~5. Measure it before trusting the head — a
+  pendant-drop rig is a syringe needle, a cuvette and a phone camera.
 
 **Material:** PMMA (acrylic) - good for initial prototyping
 - Transparent for imaging
@@ -323,8 +342,11 @@ needed (`opencfd/openfoam-default` Docker image).
   encoded-droplet (multi-dye) case ran to a full result
   (`results/encoder_dye_2026-08`) — see the interactive 3D visualization
   tooling there if building the multi-dye encoder variant of this chip.
-- **The wall-wetting finding in §2.1** (160°, not the more commonly assumed
-  120°) came out of this work and is worth carrying into the real chip.
+- **The wall-wetting finding in §2.1** — the dripping cliff at 105–120°,
+  measured across 60–170° and confirmed at 120° in 3D — came out of this
+  work and is worth carrying into the real chip. It replaces an earlier
+  claim that ≥150° was required, which rested on a value chosen because it
+  dripped rather than on a sweep.
 
 ### 4.2 What OpenFOAM still needs to do for this plan
 
@@ -804,9 +826,15 @@ actually starts, not to a fixed calendar.
 - [x] Parametric sweep, validated against Garstecki (2006)
 - [x] Channel geometry finalized: 600–800 µm (§2.1), revised from this
       document's original 100–200 µm guess based on a dedicated scale-up study
-- [x] Critical finding banked: wall contact angle is load-bearing (160°, not
-      120°) — would have caused a real chip to jet a wall film instead of
-      dripping, likely read as "wrong regime" rather than "wrong wetting"
+- [x] Wetting measured, not assumed: the dripping cliff sits at **105–120°**
+      (`wetting_2026-08`), confirmed at 120° in 3D. An earlier revision
+      claimed ≥150° was required and marked the risk down on that basis —
+      but 160° had been *selected because it dripped*, so the claim rested
+      on itself. The requirement is real (90° fails) and ~45° lower than
+      advertised
+- [ ] **Measure σ and θ on the bench** — σ = 30 mN/m is uncited and sets the
+      column height directly (ΔP ∝ σ); θ needs checking on 468MP as well as
+      PMMA. Pendant drop + sessile drop under oil, ~$60, no lab required
 - [ ] CAD model of the physical chip (Fusion 360) — not started
 - [ ] Design 3D printed Luer ports — not started
 - [ ] Order components (long lead time: camera, pressure controllers) — not started
@@ -917,7 +945,7 @@ here anymore; see §4.)*
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | Chip fabrication fails (leaks, wrong dimensions) | Medium | High | Make multiple chips, have backup fabrication method (e.g., 3D print master), test bonding on scrap first |
-| Droplet formation doesn't work (wrong regime) | **Low** *(was Medium — largely de-risked)* | Medium | Dimensions, flow rates and — critically — **wall contact angle (160°, not the more typical 120°)** are now verified in OpenFOAM (§4), not just from literature. If it still doesn't drip on the real chip, suspect surface wetting/treatment first. |
+| Droplet formation doesn't work (wrong regime) | Medium | Medium | Dimensions and flow rates are verified in OpenFOAM (§4). Wetting is now measured too: the dripping cliff is at **105–120°**, not the ≥150° previously claimed, and 120° is confirmed in 3D — so there is more margin here than this table used to assert. The **unmeasured** risk has moved to interfacial tension: σ = 30 mN/m is an uncited assumption, the head scales as ΔP ∝ σ, and below ~8 mN/m the chip stops forming usable plugs at the designed drive. Measure σ (pendant drop) and θ (sessile drop under oil, on **both** PMMA and 468MP) before fabricating. |
 | Pressure controllers too expensive | Low | High | Plan DIY alternative with Arduino + proportional valves, budget for this in Phase 2 |
 | Camera frame rate insufficient | Low | Medium | Verify specs before purchase (>200 fps), have manual high-speed camera option (borrow?) |
 | Droplet detection algorithm fails | Medium | Medium | Use multiple algorithms (Hough circles, thresholding, ML), manually annotate ground truth |
@@ -945,10 +973,17 @@ What's actually next is the physical build:
 3. **Order long-lead items**:
    - Machine vision camera (research Basler, FLIR models)
    - Pressure controllers (get quotes from vendors)
-4. **Confirm the wall-wetting plan** for the real chip (§2.1) — PMMA surface
-   treatment or adhesive-film choice needs to land near 160° contact angle,
-   not the more commonly assumed 120°, or expect a wall film instead of
-   droplets
+4. **Measure the two fluid properties** (§2.1) before committing to a chip —
+   both are tabletop, need no lab, and together cost well under $100:
+   - **σ by pendant drop** (syringe needle, cuvette, phone camera, OpenDrop).
+     This sets the column height directly, ΔP ∝ σ. If it comes back near
+     5–10 mN/m rather than the assumed 30, the head drops from ~10 cm to
+     ~2 cm and every observable in §4 shifts with it.
+   - **θ by sessile drop under oil**, on a PMMA coupon *and* a 468MP coupon.
+     Target ≥ 120°, comfortably ≥ 130°. The adhesive is the real unknown:
+     it is the channel ceiling and a more polar surface than PMMA, and no
+     simulation here can yet test an oil-wet floor against a water-wet
+     ceiling — the 3D case's symmetry plane forces them equal.
 
 ### Phase 2 Deliverables (Fabrication & Assembly)
 
