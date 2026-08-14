@@ -1,13 +1,14 @@
 # Wetting and interfacial tension: the two unmeasured assumptions — 2026-08
 
-**Status: studies A, A2, B and the 3D spot-check (D) complete. Study C is
-running; this file will grow.**
+**Status: complete. All five studies (A, A2, B, C, D) have run.**
 
 **Headline, in one line each.** The wall must be oil-wet by **105–120°**,
 not the ≥150° the docs demand — but *neutral* wetting (90°) fails, so the
 requirement is real, just 45° lower than advertised. And the chip needs
-**σ ≳ 20 mN/m** to make the plugs it was specced for; below ~8 mN/m
-nothing detaches at all.
+**σ ≳ 20 mN/m** to make the plugs it was specced for at the designed head;
+below ~8 mN/m nothing detaches at all. But that is a *tuning* problem, not a
+design flaw: retune the columns to **oil cm ≈ σ mN/m ÷ 3** and L/w returns to
+1.550 at every σ from 5 to 40 mN/m (study C).
 
 The θ finding is **confirmed in 3D** (study D): at θ = 120° the chip still
 forms plugs with all four walls wetting, so it is not a 2D artifact. The σ
@@ -154,11 +155,17 @@ responds but saturates above 20 mN/m. **Speed does not work** — it is
 non-monotonic, peaking at σ = 12 — which is most likely noisy speed
 estimates in the irregular marginal cases rather than physics.
 
-Two things are unresolved. σ = 40 scores `marginal` at the *top* end on
-length spread with only 3 droplets in 0.6 s; that smells like run length
-rather than physics, but it has not been shown. And the measured period is
-quantised to the 5 ms write interval, so rate resolution is ±5.5% at 11 Hz
-and ±2.8% at 5.6 Hz.
+σ = 40 scoring `marginal` at the *top* end looked at first like a run-length
+artifact. It is not: **study C settles it.** Given the drive it wants
+(13.32/6.66 cm instead of 10.0/5.0) the same σ = 40 gives clean plugs at
+L/w 1.550 with rate exactly on prediction. The irregularity was the chip
+sitting off its operating point — at the unscaled drive the capillary entry
+threshold takes 100 Pa of the 490 Pa water column and Ca falls — not a
+short run. Both `marginal` verdicts in this table, at 8/12 and at 40, are
+the same phenomenon from opposite sides.
+
+One measurement limit remains: the period is quantised to the 5 ms write
+interval, so rate resolution is ±5.5% at 11 Hz and ±2.8% at 5.6 Hz.
 
 **The consequence for the bench.** If 2% Span 80 puts the real interface
 anywhere near 5–10 mN/m, this chip at its designed head does not produce
@@ -166,6 +173,56 @@ the plugs the repo is calibrated on. The fix is to *lower* the columns in
 proportion to σ (ΔP ~ Ca·σ·L/w², so ~2 cm rather than 10 at σ = 6 mN/m) —
 which study C is testing. It is emphatically **not** to push harder: a
 thread is stabilised, not broken, by more water pressure.
+
+## Study C — σ with the drive retuned as P ∝ σ
+
+The same six interfacial tensions as study B, but with both column heights
+scaled by σ/30 rather than left at the designed 980/490 Pa. Each case's
+clock is rescaled too (endTime and writeInterval by 30/σ), because if
+P ∝ σ then U ∝ σ and the droplet period goes as 1/σ — holding endTime fixed
+would show fewer droplets at low σ purely because the run ended, which reads
+as a regime change rather than as slower physics. `C_sigma_scaledP_results.csv`.
+
+| σ (mN/m) | oil / water head | regime | L/w | speed err vs ∝σ | rate err vs ∝σ | same σ at the **designed** head (study B) |
+|---|---|---|---|---|---|---|
+| 5 | 1.66 / 0.83 cm | plugs | **1.550** | −1.76% | +1.43% | **thread — nothing detaches** |
+| 8 | 2.66 / 1.33 cm | plugs | **1.550** | −0.72% | +1.43% | marginal, L/w 1.088 |
+| 12 | 4.00 / 2.00 cm | plugs | **1.550** | −0.88% | +1.43% | marginal, L/w 1.075 |
+| 20 | 6.66 / 3.33 cm | plugs | **1.550** | −0.44% | +1.43% | plugs, L/w 1.400 |
+| 30 | 9.99 / 4.99 cm | plugs | **1.550** | anchor | anchor | plugs, L/w 1.550 |
+| 40 | 13.32 / 6.66 cm | plugs | **1.550** | −0.15% | 0.00% | marginal, L/w 1.550 |
+
+**L/w is 1.550 at every point**, across an 8× range in σ and an 8× range in
+column height, with speed and rate tracking the ∝σ prediction to better than
+1.8%. The unscaled column, by contrast, wanders from L/w 1.075 to 1.550 and
+fails outright at the bottom.
+
+So the chamber is **not fragile to interfacial tension — it is fragile to not
+knowing it.** Get σ wrong and the chip misbehaves in ways that look like a
+geometry or flow-rate fault; measure it once and one proportional correction
+restores the design point exactly.
+
+### The correction, in the form a builder uses
+
+> **oil column (cm) ≈ σ (mN/m) ÷ 3**, water column half that
+
+30 mN/m → 10.0 / 5.0 cm as designed. 6 mN/m → 2.0 / 1.0 cm. Measure σ by
+pendant drop, set the columns, done — no further tuning, and every observable
+in `scaleup_2026-07` transfers with the clock rescaled by 30/σ.
+
+### What gets harder at low σ
+
+The heads shrink, and with them the tolerance for *absolute* levelling. The
+motorised Z axes are unaffected — 0.1 mm ≈ 0.98 Pa is 0.37% of a 261 Pa drive
+at σ = 8, and still only 0.6% at σ = 5. But a 1 mm error in where the
+reservoir actually sits relative to the chip is 3.7% of the operating point
+at σ = 8 and **6% at σ = 5**, against ~1% at the designed 10 cm.
+
+At the low end, levelling and meniscus reading become the precision-limiting
+step rather than the actuators. And the Mariotte air tube stops being a
+convenience: unvented drift of 14.7 mm/hr is 1.5%/hr of a 10 cm column but
+**~90%/hr of a 1.66 cm one**. A chip running on 5 mN/m fluid would leave its
+operating window in minutes without it.
 
 ## Study D — the 3D spot-check, θ = 120 vs 160
 
@@ -296,7 +353,7 @@ produce cases that do not.
 | A | θ = 120–170° | fixed 980/490 Pa | ✅ all plugs, no boundary found |
 | A2 | θ = 60–105° | fixed 980/490 Pa | ✅ all thread — cliff bracketed to 105–120° |
 | B | σ = 5–40 mN/m | fixed 980/490 Pa | ✅ calibration curve; cliff between 5 and 8 mN/m |
-| C | σ = 5–40 mN/m | scaled ∝ σ | running — does retuning the head to P ∝ σ recover the design point? |
+| C | σ = 5–40 mN/m | scaled ∝ σ | ✅ yes — L/w 1.550 at all six, within 1.8% of ∝σ |
 | D | θ = 120 vs 160 | velocity-driven, 3D | ✅ both form plugs — the 2D finding holds with all four walls wetting |
 
 Note D is **velocity-driven** — the 3D case has no feed resistors, so a
