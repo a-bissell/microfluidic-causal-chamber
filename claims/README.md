@@ -1,4 +1,4 @@
-# claims/ — the chamber's claims layer (lakatos engine port, phase 1)
+# claims/ — the chamber's claims layer (lakatos engine port, phases 1–2)
 
 The prose claims scattered across `results/*/README.md` — monotonicity,
 similarity, mass balance, the 2D→3D correction, conditional independence —
@@ -17,7 +17,25 @@ Lakatos repo checked out as a sibling directory (path fallback built in).
 | file | role |
 |---|---|
 | `frozen.py` | Tier-1 decider: exhaustive instance tests over the frozen, committed CSVs (~2.4k rows re-checked per run) |
-| `battery.py` | the 12-claim registry + expected-disposition acceptance ledger |
+| `battery.py` | the 12-claim battery + expected-disposition acceptance ledger |
+| `audit.py` | mechanical audit of [`CLAIMS.md`](../CLAIMS.md) (phase 2): controlled statuses, resolvable links, battery cross-check both ways, sources exist, no depending on refuted/withdrawn entries — plus the dependency query |
+
+```
+python3 -m claims.audit                                  # audit the registry
+python3 -m claims.audit --dependents sigma-30-assumed    # what breaks if sigma != 30?
+```
+
+## The registry (phase 2)
+
+[`CLAIMS.md`](../CLAIMS.md) at the repo root holds every load-bearing claim
+— the 12 battery claims plus assumptions (σ = 30 mN/m, uncalibrated θ),
+prose-verified results (Garstecki recovery, cyclicity, the design point,
+the wetting cliff, the σ-head calibration), open anomalies (the 997 µm
+mesh question, the 3.6 kPa column), and the withdrawn encoder null
+control. `depends:` edges make blocking-assumption analysis a query: σ
+currently implicates the two open-window claims, the design point, and
+the wetting cliff. The `prose-verified` count is the mechanization
+backlog.
 
 ## What the first run established (2026-08-30)
 
