@@ -1,4 +1,4 @@
-# claims/ — the chamber's claims layer (lakatos engine port, phases 1–2)
+# claims/ — the chamber's claims layer (lakatos engine port, phases 1–3)
 
 The prose claims scattered across `results/*/README.md` — monotonicity,
 similarity, mass balance, the 2D→3D correction, conditional independence —
@@ -19,6 +19,8 @@ Lakatos repo checked out as a sibling directory (path fallback built in).
 | `frozen.py` | Tier-1 decider: exhaustive instance tests over the frozen, committed CSVs (~2.4k rows re-checked per run) |
 | `battery.py` | the 12-claim battery + expected-disposition acceptance ledger |
 | `audit.py` | mechanical audit of [`CLAIMS.md`](../CLAIMS.md) (phase 2): controlled statuses, resolvable links, battery cross-check both ways, sources exist, no depending on refuted/withdrawn entries — plus the dependency query |
+| `refit.py` | phase 3, fitter side: no-hints machine refit of the sweep scaling law (exact rational minimax over support pairs; the exact fitter's refusal on noise demonstrated first) |
+| `refit_acceptance.py` | phase 3, checker side: knows the published Garstecki answer, judges the blind refit (R1 no-hints guard, R2 refusal, R3 recovery bands, R4 residual, R5 Ca-stratification) |
 
 ```
 python3 -m claims.audit                                  # audit the registry
@@ -36,6 +38,20 @@ control. `depends:` edges make blocking-assumption analysis a query: σ
 currently implicates the two open-window claims, the design point, and
 the wetting cliff. The `prose-verified` count is the mechanization
 backlog.
+
+## The refit acceptance (phase 3 — the port's t25)
+
+`python3 -m claims.refit_acceptance`: the domain-free lakatos fitter,
+pointed blind at the frozen velocity sweep, must re-derive the published
+Garstecki fit unaided. Result (2026-08-30): the exact fitter first
+REFUSED the raw noisy rows (honest — no exact law fits noise); the
+minimax support-pair refit then proposed L/w = 0.852 + 1.203·q — slope
+within 3% and intercept within 6.5% of the published 0.80 + 1.24 — and,
+offered Ca as a second atom, rediscovered the README's stratification
+note blind (residual 3.0× tighter, negative Ca coefficient =
+shear-assisted breakup shortens slugs). A no-hints guard scans the whole
+fit path's source for the law's name, its published coefficients, and any
+least-squares vocabulary; the machine law is claim #13 in the battery.
 
 ## What the first run established (2026-08-30)
 

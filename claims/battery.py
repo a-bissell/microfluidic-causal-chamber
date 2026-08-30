@@ -24,10 +24,11 @@ What this battery is FOR, beyond regression:
 Run from the repo root:  python3 -m claims.battery
 """
 import sys
+from fractions import Fraction
 
 from lakatos import Axis, EngineCandidate, run_engine
 
-from claims import frozen
+from claims import frozen, refit
 
 
 def candidates():
@@ -170,6 +171,34 @@ def candidates():
                   'within 5% on L/w at all shared settings',
             instance=t, axes=[Axis('k', lo=1)], inspiring=[(2,)],
             valid=lambda k: 1 <= k <= nshared, cost=lambda k: k, cap=100)))
+    # -- phase 3: the machine-refit scaling law as a permanent fixture.
+    # The law's coefficients come from claims/refit.py (minimax support-pair
+    # refit, exact rational, no-hints-guarded); whether they match the
+    # published literature form is refit_acceptance.py's R3. Here the claim
+    # is data-internal: the machine law holds within its declared tolerance
+    # over every frozen sweep row.
+    a, b, _res, nrows = refit.minimax_affine()
+    spts = sorted(refit.sweep_points())
+    tol = Fraction('0.11')
+
+    def refit_instance(k):
+        for q, _, y in spts[:k]:
+            if abs(y - (a + b * q)) > tol:
+                return False, dict(q=float(q), got=float(y),
+                                   law=round(float(a + b * q), 4)), k
+        return True, None, k
+
+    cands.append(EngineCandidate(
+        'sweep: L/w affine in flow-rate ratio (machine-refit law)',
+        'claims/refit.py (minimax refit; matched to literature by '
+        'refit_acceptance.py)',
+        conjecture_spec=dict(
+            claim='the machine-refit affine law holds within 0.11 on L/w '
+                  'over every frozen velocity-sweep row',
+            instance=refit_instance, axes=[Axis('k', lo=2)],
+            inspiring=[(3,)], valid=lambda k: 2 <= k <= nrows,
+            cost=lambda k: k, cap=100)))
+
     t, nshared = frozen.cross_repro_test(tol=0.03, mode='median')
     cands.append(EngineCandidate(
         'protocol vs psweep: median L/w disagreement within 3%',
@@ -199,6 +228,7 @@ EXPECTED = {
     'protocol vs psweep: L/w agrees within 5% at EVERY shared setting':
         'REFUTED',
     'protocol vs psweep: median L/w disagreement within 3%': 'SURVIVOR',
+    'sweep: L/w affine in flow-rate ratio (machine-refit law)': 'SURVIVOR',
 }
 
 

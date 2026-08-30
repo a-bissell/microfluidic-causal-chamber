@@ -180,14 +180,20 @@ version dies on one setting.
 ## Prose-verified claims (mechanization backlog)
 
 ### garstecki-scaling-recovered
-- status: prose-verified
+- status: robust-frozen
 - kind: literature-recovery
 - source: simulation/openfoam/results/sweep_2026-07/README.md
+- verified: battery "sweep: L/w affine in flow-rate ratio (machine-refit law)" (2026-08-30, envelope k=9, tol 0.11)
 
 L/w = 0.80 + 1.24·(Q_disp/Q_cont) recovered from the velocity-driven
-sweep (Garstecki's squeezing-regime form). Phase 3's acceptance test: the
-domain-free fitter must re-derive this unaided from the frozen sweep, with
-a no-hints guard.
+sweep (Garstecki's squeezing-regime form). Mechanized in phase 3: the
+no-hints-guarded minimax refit (claims/refit.py, exact rational, no least
+squares) re-derived L/w = 0.852 + 1.203·q unaided — slope within 3%,
+intercept within 6.5% of the published fit (refit_acceptance.py R1–R5) —
+after the exact fitter first honestly REFUSED the raw noisy rows. The
+machine also rediscovered the README's Ca-stratification blind: adding Ca
+tightens the minimax residual 3.0× with a negative coefficient
+(shear-assisted breakup shortens slugs).
 
 ### cyclicity-actuation-selects-graph
 - status: prose-verified

@@ -43,6 +43,7 @@ WINDOW600 = _read('window600_2026-07/window_results.csv')
 SCALEUP = _read('scaleup_2026-07/summary.csv')
 MILL3D800 = _read('mill3d800_2026-08/metrics.csv')
 PROTOCOL = _read('protocol_v1_2026-07/protocol_results.csv')
+SWEEP = _read('sweep_2026-07/sweep_results.csv')
 
 
 # ---- grid monotonicity -------------------------------------------------------
@@ -258,6 +259,7 @@ def _unit_frozen():
     # frozen files loaded and shaped as expected
     assert len(PSWEEP) == 75 and len(PSWEEP_CAUSAL) == 75
     assert len(WINDOW600) == 25 and len(SCALEUP) == 3 and len(MILL3D800) == 2
+    assert len(SWEEP) == 11
 
 
 _unit_frozen()
