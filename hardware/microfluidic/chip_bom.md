@@ -32,6 +32,24 @@ the same technique as at 400 µm, just with a tool that does not snap.
 | 3D Printer | 1 | ~$150-300 (FDM) | ~$200-500 (resin: Elegoo Mars, Photon) | $1k+ | Luer ports. Resin preferred for detail/sealing. **A retired FDM printer is also the donor for the Z axes in §2** — do not scrap it. |
 | 3D Printer Material | 1 spool/bottle | ~$20-30 (PLA/PETG) | ~$30-50 (standard resin) | $50+ (engineering resin) | For Luer ports. |
 
+*Optional — P→Q→f smoke-test rig (see plan §2.1a):* a de-risking rung, not the
+final chamber. Validates actuation and sensing before spending on optics.
+
+| Item | Quantity | Cost | Notes |
+| :--- | :--- | :--- | :--- |
+| IDEX PEEK micro-tee | 1 | ~$20-40 | ~150-250 µm through-hole; a functioning T-junction with zero glasswork. |
+| Fused-silica / Polymicro tubing | 1-2 lengths | ~$20-40 | Plumbs the tee. Polyimide coating is opaque — **cannot image droplets in situ**, so this rig reads droplet rate from a pressure sensor or one downstream photodiode, not video. |
+| Fittings (1/16" flangeless) | Set | ~$15-30 | IDEX-class nuts/ferrules for the tee ports. |
+
+*Alternative glass route (plan §2.1a):* a **square glass capillary as the
+straight channel + a blunt-cut round butted in** for the side inlet keeps the
+planar T geometry and the twin, is optically flat, and reaches sub-500 µm with
+no fragile 1/64" endmill. Square borosilicate (e.g. AIT 1.05 mm, VitroCom
+VitroTubes) + 1.0 mm OD round runs ~$60-140 for enough stock to prototype.
+**Do not taper and do not buy a pipette puller** — a T-junction needs no
+orifice. Silanize any glass running water-in-oil. Measure the actual bore under
+a scope before trusting the nominal size (Q ∝ bore⁴; a 10% error is ~46% flow).
+
 ---
 
 **2. Fluid Handling / Actuation (hydrostatic, motorised)**
