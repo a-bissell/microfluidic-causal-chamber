@@ -26,7 +26,7 @@ Run from the repo root:  python3 -m claims.battery
 import sys
 from fractions import Fraction
 
-from lakatos import Axis, EngineCandidate, run_engine
+from lakatos import Axis, EngineCandidate, exhaustive, run_engine
 
 from claims import frozen, refit
 
@@ -195,7 +195,7 @@ def candidates():
         conjecture_spec=dict(
             claim='the machine-refit affine law holds within 0.11 on L/w '
                   'over every frozen velocity-sweep row',
-            instance=refit_instance, axes=[Axis('k', lo=2)],
+            instance=exhaustive(refit_instance), axes=[Axis('k', lo=2)],
             inspiring=[(3,)], valid=lambda k: 2 <= k <= nrows,
             cost=lambda k: k, cap=100)))
 
@@ -246,6 +246,17 @@ if __name__ == '__main__':
         all_ok &= ok
         print(f"  {'PASS' if ok else 'FAIL'}  {name}: {got.get(name)} "
               f"(expected {want})")
+
+    # sampling pin: every survivor must have EARNED the exhaustive rung. The
+    # frozen tests enumerate every committed row in their prefix, so a
+    # ROBUST_SAMPLED survivor here means a test lost its scope tag — not
+    # that the data was sampled. Caught here so the engine's rung split
+    # cannot silently downgrade the battery again (it did, 2026-09-05).
+    s_ok = all('ROBUST_CONJECTURE' in details[n]['detail']
+               for n, w in EXPECTED.items() if w == 'SURVIVOR')
+    all_ok &= s_ok
+    print(f"  {'PASS' if s_ok else 'FAIL'}  every survivor earned "
+          f"ROBUST_CONJECTURE (exhaustive scope, not ROBUST_SAMPLED)")
 
     # witness spot-checks: the two kills must localize the 3.6 kPa column
     speed = details['psweep5x5: droplet speed monotone in both actuators']

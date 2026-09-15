@@ -19,6 +19,8 @@ import math
 import statistics as st
 from itertools import product
 
+from lakatos import exhaustive
+
 from claims import RESULTS
 
 
@@ -79,7 +81,7 @@ def grid_monotone_test(rows, kc, kd, kv, along_d='inc', along_c='dec'):
                                                round(mean[(c2, d)], 3))), n
         return True, None, n
 
-    return test, len(pcs), len(pds)
+    return exhaustive(test), len(pcs), len(pds)
 
 
 def grid_regime_test(rows, kc, kd, kregime, allowed):
@@ -100,7 +102,7 @@ def grid_regime_test(rows, kc, kd, kregime, allowed):
                                        got=r[kregime]), n
         return True, None, n
 
-    return test, len(pcs), len(pds)
+    return exhaustive(test), len(pcs), len(pds)
 
 
 # ---- conditional independence of measurement noise ---------------------------
@@ -133,7 +135,7 @@ def noise_independence_test():
         return ok, (None if ok else dict(r=round(r_, 4),
                                          threshold=round(thr, 4), n=n)), n
 
-    return test, len(order)
+    return exhaustive(test), len(order)
 
 
 # ---- scale-up similarity and volume consistency ------------------------------
@@ -167,7 +169,7 @@ def scaleup_similarity_test(tol=0.04):
                                                      2)), n
         return True, None, n
 
-    return test, len(rows)
+    return exhaustive(test), len(rows)
 
 
 def volume_consistency_test(tol=0.01):
@@ -186,7 +188,7 @@ def volume_consistency_test(tol=0.01):
                                    Q_x_period_nL=round(pred, 2)), n
         return True, None, n
 
-    return test, len(rows)
+    return exhaustive(test), len(rows)
 
 
 # ---- the 2D->3D correction factors (mill3d800 matched pair) ------------------
@@ -209,7 +211,7 @@ def mill_ratio_test(claimed, tol=0.05):
                                    measured_ratio=round(got, 3)), n
         return True, None, n
 
-    return test
+    return exhaustive(test)
 
 
 # ---- cross-run reproducibility (protocol_v1 vs psweep5x5) --------------------
@@ -240,7 +242,7 @@ def cross_repro_test(tol, mode):
                 worst=worst[1], tol_pct=tol * 100), n
         return True, None, n
 
-    return test, len(shared)
+    return exhaustive(test), len(shared)
 
 
 # ---- unit checks (run at import, engine convention) --------------------------
