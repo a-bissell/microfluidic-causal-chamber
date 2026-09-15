@@ -39,9 +39,9 @@ fi
 grep -E "satellites below|droplet observations" "$CASE_DIR/log.extract" | tail -1 | sed 's/^/    /'
 
 # 3. Analyse: core-vs-wall ± SE, symmetry, and the decisive-yet verdict.
-"$VENV_PY" - "$CASE_DIR" <<'PY'
+"$VENV_PY" - "$CASE_DIR" "$SCRIPTS_DIR" <<'PY'
 import sys, numpy as np
-sys.path.insert(0, "/Users/app13/Documents/GitHub/robolab/microfluidic-causal-chamber/simulation/openfoam/scripts")
+sys.path.insert(0, sys.argv[2])
 from pathlib import Path
 from analyze_encoder import load, track, per_droplet, flag_unstable
 case = Path(sys.argv[1])
