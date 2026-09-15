@@ -137,9 +137,115 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
 - Option B: Laser cutting + layer bonding (faster but limited depth control)
 - Option C: 3D printed master → PDMS casting (for future iterations)
 
+Milled PMMA is the committed primary route. Glass-capillary fabrication (nested
+coaxial, square/rectangular VitroTubes, or a PEEK micro-tee) is a real and
+well-documented alternative that keeps coming up; **§2.1a is a standing trade
+study explaining why it is *not* the primary route, what it is genuinely better
+at, and the one place it earns a slot in this build (a PEEK-tee smoke-test rig).**
+
 **Interface:**
 - 3× Luer lock ports (2 inlets, 1 outlet) - 3D printed or commercial
 - Bonding: PDMS gasket or adhesive layer (3M 468MP)
+
+### 2.1a Fabrication trade study: milled PMMA vs. glass capillary
+
+**Decision: keep the primary device a *planar* T-junction (milled PMMA, or a
+square glass capillary standing in for the milled channel). Do not adopt a
+nested coaxial capillary or a rectangular VitroTube as the primary device. Use a
+PEEK micro-tee once, early, as a throwaway smoke-test rig.**
+
+The reasoning is specific to this being a *causal chamber*, not just a droplet
+generator. The value here is not "make droplets cheaply" — it is "run the bench
+on a geometry whose causal structure we can write from first principles and
+whose parameters stay fixed across a dataset, coupled to a verified digital
+twin." Two of that framing's consequences decide the geometry, and they are
+what most sourcing advice (which optimises for cheap, good droplets) misses.
+
+**Why not coaxial / round-in-square.** The classic capillary recipe — an AIT
+1.05 mm inner-dimension square nesting a 1.0 mm OD round so the round
+self-centres against the four flats — is elegant (concentric coaxial geometry
+with no alignment stage). But it is *axisymmetric flow-focusing*, a different
+device class from the T-junction this project is built on:
+
+- **It breaks the twin.** Every verified result in this repo is a planar
+  T-junction: the sweep and scale-up
+  ([`scaleup_2026-07`](../../simulation/openfoam/results/scaleup_2026-07/)), the
+  3D corner-bias study
+  ([`mill3d800_2026-08`](../../simulation/openfoam/results/mill3d800_2026-08/)),
+  the encoder ([`encoder_dye_2026-08`](../../simulation/openfoam/results/encoder_dye_2026-08/)).
+  Coaxial dripping/jetting is a different mesh, a different regime map, and a
+  different scaling law. Adopting it means re-doing the OpenFOAM twin or
+  severing the hardware↔sim correspondence that is a stated novelty and
+  validation goal (§4, §7.3). That correspondence is the crown jewel; do not
+  trade it for a self-centring trick that solves an alignment problem a planar
+  chip does not have.
+- **It can't do the encoder.** The encoded-droplet study needs three dye
+  streams merging (`c_i = Q_i/ΣQ`;
+  [`tjunction_3d_encoder`](../../simulation/openfoam/tjunction_3d_encoder/)).
+  Three inlets meeting at a junction are native to a planar chip or a tee, and
+  awkward-to-impossible in a nested round-in-square. If the encoder stays — and
+  it is the most distinctive result — it constrains the geometry to planar.
+
+Rectangular VitroTubes (precisely toleranced optical channels down to
+10 × 100 µm) are subject to the same two objections: single straight channel,
+no native junction, no multi-inlet.
+
+**What the capillary case gets right, and what to take from it.** The strongest
+argument in its favour is *reproducibility*, and it lands — because it cuts
+against milled PMMA, not for it. "Buy the channel, remove fabrication from the
+variable list" is exactly the right instinct for a dataset whose independent
+variable is geometry. And milled PMMA is the *worse* option on cross-device
+reproducibility: tool wear drifts the cross-section between chips, internal
+corners round unpredictably, and the floor-vs-lid wetting asymmetry is already
+flagged as unverified (§2.1). A drawn glass bore is fixed the moment you pick
+the tube. The way to capture that **without** breaking the twin or the encoder:
+
+- Use a **square glass capillary as the straight channel with a blunt-cut round
+  capillary butted in for the side inlet** — a planar-equivalent T that is
+  optically flat, imaging-friendly, off-the-shelf, and sub-500 µm with no
+  fragile 1/64" endmill. This is the glass route that stays inside our
+  geometry, and it is the one worth prototyping alongside the milled chip.
+- **Do not taper, and do not buy a puller.** The expensive, fiddly part of
+  capillary work (Flaming/Brown puller, grinding an orifice to size on a
+  microforge) exists to make a flow-focusing *orifice*. A T-junction needs
+  none of it: score-and-snap a blunt face, polish flat, butt it in. Drop
+  tapering from consideration entirely for this geometry.
+- **Silanize any glass (or PMMA) running water-in-oil.** Untreated glass wets
+  the aqueous phase and you get stratified flow, not droplets — the same
+  oil-wet ≥120° requirement §2.1 already imposes, restated for glass.
+
+**The PEEK micro-tee earns exactly one slot: a smoke-test rig.** An IDEX PEEK
+tee (~150–250 µm through-hole) plumbed with fused silica is a functioning
+T-junction for well under $100 with zero glasswork. Its polyimide coating is
+opaque, so it *cannot* image droplets in situ — which disqualifies it as the
+final chamber, since the twin outputs `d_droplet`/`L_droplet` and the whole
+observation stack (§2.3) is built around imaging. But that same rig validates
+the **P → Q → f** half of the causal graph (frequency read from a pressure
+sensor or a single downstream photodiode) in about a week, before any money
+goes into optics, strobes, and alignment. Build it first to de-risk actuation
+and sensing; then commit to the imaging-capable planar T for the actual
+dataset. It is a rung on the ladder, not a fork in the road.
+
+**Tolerance discipline (applies to any bought channel).** Off-the-shelf
+capillary is spec'd loosely — VitroCom quotes ±10% on inner dimension and ±20%
+on wall; the sub-$20 AliExpress borosilicate claims ±0.05 mm. That is fine
+*within one device* (the geometry is fixed once you pick the tube) but it
+matters for the dataset's ground truth, because our P→Q edge is
+Hagen–Poiseuille and **Q ∝ (bore)⁴** at fixed head: a 10% bore error is a ~46%
+flow error. So for anything going into a released dataset, measure the actual
+bore under a scope and pin that number in the dataset metadata — do not trust
+the nominal size. (Milled channels need the same treatment, measured against
+the tool, which is why §2.1 already treats geometry as measured, not designed.)
+
+**Summary.**
+
+| Route | Twin match (planar T) | Encoder (3-inlet) | In-situ imaging | Geometric reproducibility | Fab risk / cost | Verdict |
+|---|---|---|---|---|---|---|
+| Milled PMMA planar T | ✅ exact | ✅ | ✅ | ⚠️ tool-wear drift | ⚠️ needs a mill; forgiving at 800 µm | **Primary** |
+| Square glass capillary + butted round | ✅ planar-equivalent | ⚠️ harder, doable | ✅ | ✅ drawn bore is fixed | ✅ no mill, no taper | **Prototype alongside** |
+| Nested coaxial round-in-square | ❌ different device class | ❌ | ✅ | ✅ | ✅ self-centring | Rejected — breaks twin & encoder |
+| Rectangular VitroTube | ❌ single straight channel | ❌ | ✅ | ✅ | ✅ | Rejected — no native junction |
+| IDEX PEEK micro-tee | ✅ (T geometry) | ⚠️ | ❌ opaque | ✅ | ✅ <$100 | **Smoke-test rig only** |
 
 ### 2.2 Fluid Actuation System
 
