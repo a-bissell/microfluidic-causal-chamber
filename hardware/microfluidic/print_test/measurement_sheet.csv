@@ -1,0 +1,24 @@
+coupon,feature,nominal_w_um,nominal_h_um,nominal_w_px,nominal_h_layers,measured_w_um,measured_h_um,notes
+W,400x400,400,400,11.4,4,,,
+W,600x600,600,600,17.1,6,,,
+W,800x800,800,800,22.9,8,,,
+W,1000x1000,1000,1000,28.6,10,,,
+W,1200x1200,1200,1200,34.3,12,,,
+H,800x800,800,800,22.9,8,,,
+H,800x900,800,900,22.9,9,,,
+H,800x1000,800,1000,22.9,10,,,
+H,800x1100,800,1100,22.9,11,,,
+H,800x1200,800,1200,22.9,12,,,
+LUER,socket -0.10 mm,4193,,,,,,seats? leaks under syringe push?
+LUER,socket +0.00 mm,4292,,,,,,seats? leaks under syringe push?
+LUER,socket +0.10 mm,4392,,,,,,seats? leaks under syringe push?
+THF,"theta, flat (layer face, ~channel floor)",,,,,,,"theta_deg through water, under doped oil"
+THV,"theta, upright (layer edges, ~side wall)",,,,,,,"theta_deg through water, under doped oil"
+OPT,window 0.5 mm,,500,,5,,,edge sharp under strobe? (px blur)
+OPT,window 1.0 mm,,1000,,10,,,edge sharp under strobe? (px blur)
+OPT,window 1.5 mm,,1500,,15,,,edge sharp under strobe? (px blur)
+OPT,window 2.0 mm,,2000,,20,,,edge sharp under strobe? (px blur)
+T600_pad,drains with IPA flush?,,,,,,,
+T600_pad,leak-free at operating head?,,,,,,,
+T800_luer,drains with IPA flush?,,,,,,,
+T800_luer,leak-free at operating head?,,,,,,,
