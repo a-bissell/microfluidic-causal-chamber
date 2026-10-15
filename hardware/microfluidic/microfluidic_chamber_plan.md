@@ -121,8 +121,9 @@ Replace pressure controllers with syringe pumps to directly control flow rates. 
   in this document assumes σ = 30 mN/m, a value that carries no citation and
   sits at roughly the *bare* water/silicone-oil figure, which is a strange
   place to land for a 2 wt% Span 80 load. If the true value is nearer
-  5–10 mN/m, the operating point moves bodily: at the designed 10.0/5.0 cm
-  head the chip produces barely-plugs (L/w ≈ 1.08) at 8–12 mN/m and
+  5–10 mN/m, the operating point moves bodily: at the designed head
+  (980/490 Pa in the simulation, 17.7/12.7 cm on the bench, §2.2) the chip
+  produces barely-plugs (L/w ≈ 1.08) at 8–12 mN/m and
   **nothing at all** below ~5. Measure it before trusting the head — a
   pendant-drop rig is a syringe needle, a cuvette and a phone camera.
 
@@ -166,34 +167,116 @@ decision.**
 
   Not a nicety. A plain reservoir's head falls as it empties: at the 800 µm
   flow rates, a 63 mm-diameter bottle drops **14.7 mm/hour on the oil side
-  and 4.3 mm/hour on the water side**. Against a 10 cm and 5 cm column that
-  is 15% and 9% per hour — enough to walk out of the ±30% droplet-forming
-  window (§5.1) in two to four hours, mid-protocol.
+  and 4.3 mm/hour on the water side**. Against the 17.7 cm and 12.7 cm
+  columns that is only 8% and 3% of head per hour, but the head left after
+  the junction is what drives flow: oil flow falls ~10% per hour and
+  q = Q_water/Q_oil climbs ~15% per hour — enough to walk out of the ±30%
+  droplet-forming window (§5.1) in two to three hours, mid-protocol.
 
 - **2× motorised vertical axes** to set the two heads independently. A
   retired 3D printer's Z axis is ideal and free; otherwise a NEMA17 + T8
   leadscrew rail is ~$30–50 each. Travel of 200 mm covers the full window
   several times over.
 
-- **Off-chip flow resistors** — both resistors are off-chip in the v2 design
-  (a millable on-chip water resistor would need sub-250 µm features).
-  Sized from the simulated operating point via Hagen–Poiseuille,
-  R = 128 µL/(πd⁴), after subtracting the ~6 mm of on-chip channel:
+- **Off-chip flow resistors, and the heads they set.** Both resistors are
+  off-chip tubing (a millable on-chip water resistor would need sub-250 µm
+  features), and the chip's own runs are kept short — a 6 mm approach and a
+  15 mm outlet — so the tubing does most of the hydraulic work and the
+  tubing is what gets trimmed. [`size_resistors.py`](size_resistors.py)
+  computes everything below from the chip coordinates in
+  [`gen_guide_diagrams.py`](gen_guide_diagrams.py), so the drawing, the BOM
+  and these heads cannot drift apart.
 
-  | Phase | needs | first-cut tubing |
+  The rule is to give the junction the network it had in the simulation,
+  element by element. The simulated network is 2D, so its resistances are
+  slot flow, R = 12µL/(h³D); the bench's are square ducts, R = 28.4µL/w⁴,
+  and tubes, R = 128µL/(πd⁴). At 800 µm (Pa·s/m³):
+
+  | Element | simulated | bench | bench parts |
+  |---|---|---|---|
+  | Oil, bottle → junction | 6.75 × 10¹⁰ | 6.68 × 10¹⁰ (−1.1%) | **15.0 cm of 1/16" ID** + 50 cm of 1/4" ID delivery + 6 mm chip approach (30% of the path) |
+  | Water, bottle → junction | 9.89 × 10¹⁰ | 9.83 × 10¹⁰ (−0.7%) | **14.5 cm of 0.5 mm ID** + 50 cm of 1/16" ID delivery + 7.8 mm chip leg |
+  | Outlet, junction → waste | 5.6 × 10⁹ | 5.2 × 10¹⁰ (**9.2×**) | 15 mm chip outlet + 10 cm of 1/8" ID to waste |
+
+  For 600 µm: **48.5 cm of 1/16" ID** oil-side and **47 cm of 0.5 mm ID**
+  water-side, same delivery and outlet lines. Tube lengths do not depend on
+  σ.
+
+  The outlet is the one element that cannot match. 4 mm of 2D slot has the
+  resistance of only 1.7 mm of real square duct, and seeing 2–3 slugs takes
+  ~11 mm of channel clear of the outlet's 8 mm port pad (slug spacing is
+  3.7 mm in 3D, 5.0 mm in 2D). The excess outlet resistance carries the
+  combined 16.4 µL/s, so it lifts the junction from the simulated 123 Pa to
+  ~885 Pa — **+758 Pa, for both phases at once** — and both heads carry that
+  offset:
+
+  | Head | simulated | **bench, 800 µm** | bench, 600 µm |
+  |---|---|---|---|
+  | Oil (P_cont) | 980 Pa | **1740 Pa = 17.7 cm H₂O** | 3030 Pa = 30.9 cm |
+  | Water (P_disp) | 490 Pa | **1250 Pa = 12.7 cm H₂O** | 2130 Pa = 21.7 cm |
+
+  Solving the bench network forward at these heads and the rounded tube
+  lengths gives Q_oil = 12.78 µL/s (+0.7%) and Q_water = 3.69 µL/s (−0.4%)
+  against the simulated 12.694 / 3.706. Heads are in cm of water; the oil
+  bottle's own column is 4% taller (ρ = 960), so 17.7 cm H₂O is 18.5 cm of
+  oil.
+
+  **σ sets the heads, not the tubing.** Every term here is viscous or
+  capillary, so at fixed Ca every head scales with σ: at 800 µm the bench
+  oil head is ≈ 0.59 cm per mN/m and the water head ≈ 0.42 cm per mN/m
+  (the simulation's "oil cm ≈ σ ÷ 3" becomes ≈ σ ÷ 1.7 on the bench). The
+  numbers above are for σ = 30 mN/m.
+
+  **Water side.** Water head minus junction is 363 Pa, the same as in the
+  simulation: 4.8× the 2D capillary threshold 2σ/w = 75 Pa and 2.4× a full
+  3D meniscus at 4σ/w = 150 Pa, so water enters with margin. What changes
+  is that the junction is now 71% of the water head instead of 25%, so any
+  error in junction pressure is a large fraction of the water drive.
+
+  **Why the chip is short.** Keeping the first 20 mm approach / 25 mm
+  outlet layout and re-sizing the tubing around it also reproduces the
+  flows, but at a cost:
+
+  | 800 µm | 20 mm / 25 mm layout | **6 mm / 15 mm (as drawn)** |
   |---|---|---|
-  | Oil (50 cSt, µ = 0.048) | 5.7 × 10¹⁰ Pa·s/m³ | **≈ 19 cm of 1/16" ID** |
-  | Water (µ = 0.001) | 1.3 × 10¹¹ Pa·s/m³ | **≈ 20 cm of 0.5 mm ID** |
+  | Chip approach, share of oil path | 99% — the oil tubing vanishes | 30% |
+  | Outlet vs simulated | 15× | 9.2× |
+  | Offset added to both heads | +1304 Pa | +758 Pa |
+  | Heads | 23.3 / 18.3 cm | 17.7 / 12.7 cm |
+  | Junction rise per Pa of oil / water head | 0.40 / 0.28 | 0.34 / 0.23 |
+  | Outlet visible past the pad | 21 mm — twice the 10 mm camera field | 11 mm |
 
-  These are analytic first cuts for the **800 µm** chip; trim on the bench
-  to match measured flow. (For 600 µm the equivalents are ~12 cm of 1.0 mm
-  ID oil-side and ~23 cm of 0.4 mm ID water-side.) Note the oil resistor is
-  short because 50 cSt silicone oil is doing most of the work already — the
-  chip itself is 26% of the oil circuit but under 1% of the water circuit,
-  which is why the water side needs a deliberate resistor and the oil side
-  barely does.
+  With a 20 mm approach the chip *is* the oil resistor, so a 4% channel
+  width error is ~16% of the oil path with nothing to trim, and the outlet
+  beyond the camera field only adds junction pressure.
 
-- **Tubing/fittings**: Luer-lock to barb, 1/16" OD PTFE or Tygon.
+  **What the bench does not reproduce: phase coupling.** In the simulation,
+  raising the oil head by 1 Pa raises the junction by 0.07 Pa; on the bench
+  by 0.34 Pa (water: 0.05 vs 0.23). The mean operating point matches but
+  cross-talk between the phases is ~4.6× stronger, so equal Pa steps do not
+  move the bench the way they move the simulation. To set the bench to the
+  flows of a simulated pressure pair (P_c, P_d), add the same offset to
+  both heads: **P_bench = P_sim + 758 + 0.60·(P_c − 980) + 0.41·(P_d − 490)**
+  Pa (`to_bench()` in `size_resistors.py`; at 600 µm, 1297 + 0.58·ΔP_c +
+  0.40·ΔP_d). Matching the coupling as well would need every inlet
+  resistance ~9× larger and heads near 90 cm.
+
+  **The outlet's two-phase drag is the least certain term.** It is computed
+  as if the outlet carried only oil: water plugs lower it, slug interfaces
+  raise it, and the 15 mm outlet holds ~4 slugs to the simulation's ~1.
+  Treat it as ±25% of the outlet's ~850 Pa, i.e. ±200 Pa, and common-mode:
+  on the bench, move both heads together until oil flow is on target, then
+  trim the water head.
+
+  **The whole line counts.** Oil delivery must be wide — 50 cm of 1/8" ID
+  would add 14% to the oil path; 1/4" ID adds 0.9%. The outlet must
+  discharge at chip level: every cm it drops below the chip pulls the
+  junction down by ~94 Pa (an oil-filled line), about a quarter of the
+  water drive.
+
+- **Tubing/fittings**: Luer-lock to barb; 1/16" ID PTFE for the oil
+  resistor, 0.5 mm ID PTFE or PEEK for the water resistor, 1/4" ID oil
+  delivery, 1/8" ID outlet line.
 
 **Instrumentation: the actuator is the sensor.**
 
@@ -440,7 +523,7 @@ class MicrofluidicModel:
 Following the pattern from `wt_test_v1` and `lt_test_v1`:
 
 **Experiment 1: Pressure-Flow Calibration**
-- Vary P_cont from 0–2 kPa (0–20 cm H₂O), measure Q_cont (by weighing outlet over time)
+- Vary P_cont from 0–2.5 kPa (0–25 cm H₂O), measure Q_cont (by weighing outlet over time)
 - Repeat for P_disp
 - Validates Hagen-Poiseuille model
 - Measures channel resistance
@@ -700,15 +783,15 @@ Use existing protocol format from wind tunnel:
 # Example protocol: formation_regimes.txt
 
 # Set all parameters to baseline (800 um chip -- see 2.2; these are
-# hydrostatic heads, so P_cont 980 Pa == a 10.0 cm column)
-SET,P_cont,980        # 980 Pa  = 10.0 cm H2O
-SET,P_disp,490        # 490 Pa  =  5.0 cm H2O
+# bench hydrostatic heads, so P_cont 1740 Pa == a 17.7 cm column)
+SET,P_cont,1740       # 1740 Pa = 17.7 cm H2O
+SET,P_disp,1250       # 1250 Pa = 12.7 cm H2O
 SET,P_out,0           # Atmospheric
 WAIT,5000             # Wait 5 seconds to stabilize
 
 # Sweep dispersed phase pressure across the measured +-30% window
 SET,flag,0
-SET,P_disp,345        # 3.5 cm H2O
+SET,P_disp,1100       # 11.2 cm H2O: 150 Pa below baseline
 WAIT,3000
 MSR,100,50           # 100 measurements, 50ms interval (record video during this)
 
@@ -977,8 +1060,8 @@ What's actually next is the physical build:
    both are tabletop, need no lab, and together cost well under $100:
    - **σ by pendant drop** (syringe needle, cuvette, phone camera, OpenDrop).
      This sets the column height directly, ΔP ∝ σ. If it comes back near
-     5–10 mN/m rather than the assumed 30, the head drops from ~10 cm to
-     ~2 cm and every observable in §4 shifts with it.
+     5–10 mN/m rather than the assumed 30, the oil head drops from ~18 cm
+     to ~3–6 cm and every observable in §4 shifts with it.
    - **θ by sessile drop under oil**, on a PMMA coupon *and* a 468MP coupon.
      Target ≥ 120°, comfortably ≥ 130°. The adhesive is the real unknown:
      it is the channel ceiling and a more polar surface than PMMA, and no
@@ -1110,9 +1193,20 @@ exogenous_zeros = {
 # Parameter sweep -- 5x5 at +-30% about the 800 um reference point.
 # The window was measured at 600 um (25/25 cells form droplets at +-30%,
 # results/window600_2026-07) and its edges were never reached, so this grid
-# sits comfortably inside verified territory. Pa; hydrostatic cm in comments.
-P_cont_values = [690, 830, 980, 1130, 1270]   # 7.0  8.5 10.0 11.5 12.9 cm H2O
-P_disp_values = [345, 415, 490,  565,  635]   # 3.5  4.2  5.0  5.8  6.5 cm H2O
+# sits comfortably inside verified territory. The grid is defined in
+# SIMULATED pressures, where the window was measured; to_bench() converts
+# each pair to the bench heads that give the same flows (plan 2.2,
+# size_resistors.py). The bench grid is sheared: e.g. the (690, 345) corner
+# is set as (1214, 869) Pa = 12.4 / 8.9 cm H2O, the (1270, 635) corner as
+# (2262, 1627) Pa = 23.1 / 16.6 cm H2O.
+P_cont_values = [690, 830, 980, 1130, 1270]   # Pa, simulated
+P_disp_values = [345, 415, 490,  565,  635]   # Pa, simulated
+
+
+def to_bench(P_cont, P_disp):
+    """Bench heads (Pa) giving the flows of a simulated pair, 800 um chip."""
+    offset = 758 + 0.601 * (P_cont - 980) + 0.410 * (P_disp - 490)
+    return round(P_cont + offset), round(P_disp + offset)
 
 protocol_name = "formation_regimes.txt"
 print(f"Generating {protocol_name}...")
@@ -1129,9 +1223,10 @@ with open(f"{OUTPUT_DIR}/{protocol_name}", "w") as f:
         for j, P_disp in enumerate(P_disp_values):
             flag = i * len(P_disp_values) + j
             
+            bench_cont, bench_disp = to_bench(P_cont, P_disp)
             print(f"SET,flag,{flag}", file=f)
-            print(f"SET,P_cont,{P_cont}", file=f)
-            print(f"SET,P_disp,{P_disp}", file=f)
+            print(f"SET,P_cont,{bench_cont}", file=f)
+            print(f"SET,P_disp,{bench_disp}", file=f)
             print("WAIT,5000", file=f)  # 5 sec to reach steady state
             
             # Measure for 10 seconds at 10 Hz (100 measurements)

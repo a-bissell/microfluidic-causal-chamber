@@ -16,12 +16,9 @@ somewhere, and the solver has no lumped-resistance BC. What the junction
 sees is a flow rate, so any upstream geometry of the right resistance does:
 
   - oil feed: modelled as a 46 mm x 400 um channel, standing in for the
-    off-chip oil resistor -- ~19 cm of 1/16" (1.59 mm) ID at 800 um. That
-    tubing plus the chip's own channels comes to 8.08e10 Pa.s/m^3 against
-    this model's 7.72e10, i.e. 4.6% -- so the bench rig reproduces the
-    simulated operating point. (An earlier revision described this as an
-    on-chip serpentine to be folded into the blank. It is not; do not mill
-    it.)
+    off-chip oil resistor -- 15.0 cm of 1/16" (1.59 mm) ID at 800 um, sized
+    against this feed + approach by hardware/microfluidic/size_resistors.py
+    (an on-chip serpentine is NOT intended; do not mill it).
   - water feed: modelled as an 80 um x 27 mm channel, the 2D hydraulic
     equivalent of ~31 cm of 0.3 mm-ID microbore tubing upstream of the
     chip port (water is too thin for a millable on-chip resistor at any of

@@ -26,8 +26,8 @@ Each coupon answers one question the milled design never had to ask:
       Whichever nominal height prints as 800 um is the Z compensation.
   T600  printed twin of the v2 milled chip, coordinates imported from
       ../gen_guide_diagrams.py, flat 1.5 mm port holes so your existing
-      surface-mount Luers + 468MP donuts fit unchanged. 45 mm of enclosed oil
-      path: the hard drainage case.
+      surface-mount Luers + 468MP donuts fit unchanged. 21 mm of enclosed
+      main channel (6 mm approach + 15 mm outlet) and a 7.8 mm water leg.
   T800  same layout at 800 um with female Luer sockets printed in, testing
       whether the fittings can be part of the chip.
   LUER  three sockets identical to T800's, opening diameter -0.10 / 0 /

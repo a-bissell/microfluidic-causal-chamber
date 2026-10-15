@@ -14,11 +14,16 @@ Design changes from v1 (400 um, on-chip 48 mm oil serpentine):
     fixed velocity keeps the same physics. What it buys is fabrication
     margin: endmill deflection and breakage scale as d^4, so a 0.6 mm tool
     is ~5x stiffer than the 1/64" (0.397 mm) the v1 design needed.
-  - BOTH flow resistors moved off-chip into tubing. Nothing on the chip
-    now does hydraulic work, so channel-length precision stops mattering
-    and the milled part is just a tee plus an observation run.
-  - Drive pressures fall as 1/w^2: 1.7 kPa oil / 0.83 kPa water, i.e.
-    18 cm and 8 cm water columns (v1 needed 40 cm and 18 cm).
+  - BOTH flow resistors moved off-chip into tubing, and the chip runs are
+    kept short: a 6 mm approach (the shortest that keeps the oil port's
+    8 mm pad clear of the junction) and a 15 mm outlet (11 mm visible past
+    the outlet pad: ~3 slugs at 800 um). Tubing then carries 70% of the oil
+    path and nearly all of the water path, and tubing is what gets trimmed.
+  - Simulated drive falls as 1/w^2 (1.73 / 0.83 kPa at 600 um, against
+    3.9 / 1.8 at 400). The real 15 mm outlet is 9x the resistance of the
+    simulated 4 mm one, which raises the junction pressure; both bench
+    heads carry that offset. size_resistors.py sizes the tubing and heads
+    from this file's coordinates.
 
 Run:  python3 gen_guide_diagrams.py
 """
@@ -36,10 +41,10 @@ HERE = Path(__file__).parent
 BLANK_W, BLANK_H = 76.2, 25.4          # 1 x 3 inch blank
 CH_W = 0.6                              # channel width AND depth (0.6 mm endmill)
 Y_MAIN = 12.7                           # main channel centreline
-OIL_PORT = (15.0, Y_MAIN)
+OIL_PORT = (29.0, Y_MAIN)
 JUNCTION = (35.0, Y_MAIN)
 WATER_PORT = (35.0, 20.5)
-OUT_PORT = (60.0, Y_MAIN)
+OUT_PORT = (50.0, Y_MAIN)
 HOLE_D, PAD_D, NOTCH = 1.5, 8.0, 3.0
 
 INK, BLUE, AMBER, GREY = "#1B2733", "#2E7DB8", "#B8821F", "#8A97A3"
@@ -84,20 +89,22 @@ def chip_layout_png():
         ax.add_patch(Circle((cx, cy), PAD_D/2, fill=False, color=GREY, lw=0.9,
                             linestyle=(0, (3, 2))))
         ax.text(cx, cy - 5.6, lab, fontsize=8.5, ha="center", color=INK)
-    ax.annotate("", xy=(JUNCTION[0], 6.0), xytext=(OUT_PORT[0], 6.0),
+    out_mm, app_mm = OUT_PORT[0] - JUNCTION[0], JUNCTION[0] - OIL_PORT[0]
+    ax.annotate("", xy=(JUNCTION[0], 5.6), xytext=(OUT_PORT[0], 5.6),
                 arrowprops=dict(arrowstyle="<->", color="#444", lw=0.8))
-    ax.text((JUNCTION[0]+OUT_PORT[0])/2, 4.6,
-            "25 mm observation run\n(~25 droplets in view)", fontsize=8, ha="center", color="#444")
-    ax.annotate("", xy=(OIL_PORT[0], 8.6), xytext=(JUNCTION[0], 8.6),
+    ax.text((JUNCTION[0]+OUT_PORT[0])/2 + 1.0, 3.3,
+            f"{out_mm:.0f} mm outlet: {out_mm - PAD_D/2:.0f} mm visible\n"
+            "(~3 slugs at 800 µm, ~4 at 600)", fontsize=8, ha="center", color="#444")
+    ax.annotate("", xy=(OIL_PORT[0], 5.6), xytext=(JUNCTION[0], 5.6),
                 arrowprops=dict(arrowstyle="<->", color="#444", lw=0.8))
-    ax.text((OIL_PORT[0]+JUNCTION[0])/2, 7.3, "20 mm approach", fontsize=8,
-            ha="center", color="#444")
+    ax.text((OIL_PORT[0]+JUNCTION[0])/2 - 1.0, 3.3, f"{app_mm:.0f} mm\napproach",
+            fontsize=8, ha="center", color="#444")
     ax.text(BLANK_W/2, 27.6,
             'MCC chip v2 — 1×3" PMMA blank · all channels 0.6 mm wide × 0.6 mm deep '
             '(single 0.6 mm endmill)', fontsize=9.5, ha="center")
     ax.text(BLANK_W/2, 1.4,
-            "no serpentine, no resistors on the chip — every channel here is just a conduit; "
-            "all hydraulic resistance is set by tubing (see plumbing diagram)",
+            "no serpentine, no resistors on the chip — runs kept short so tubing sets the "
+            "inlet resistances; the outlet's share is in the heads (size_resistors.py)",
             fontsize=8, ha="center", color="#555")
     ax.text(1.0, 23.0, "notch = orientation mark", fontsize=7, color=GREY)
     ax.set_xlim(-3, 79); ax.set_ylim(-1, 29); ax.set_aspect("equal"); ax.axis("off")
@@ -110,8 +117,11 @@ def plumbing_png():
     above it so drawn height == real head. Oil runs high (y 7.2) and drops at
     x 12.8; water runs low (y 0.8) and rises into the tee from below, so no
     two lines cross."""
+    from size_resistors import INCH, OIL_TUBE_ID, WATER_TUBE_ID, bench, cm
+    hw = bench(600, (OIL_PORT, JUNCTION, WATER_PORT, OUT_PORT))
     fig, ax = plt.subplots(figsize=(12.5, 6.6))
-    DATUM = 2.6
+    DATUM, Y_OIL = 2.6, 7.2
+    Y_WAT = DATUM + (Y_OIL - DATUM) * hw["Pd"] / hw["Pc"]     # heads to scale
 
     def bottle(y0, y1, col, name, sub):
         ax.add_patch(FancyBboxPatch((2.4, y0), 2.4, y1 - y0, boxstyle="round,pad=0.04",
@@ -124,12 +134,13 @@ def plumbing_png():
         ax.text(3.6, y1 - 0.33, name, fontsize=10, ha="center", color=col, weight="bold")
         ax.text(3.6, y1 - 0.72, sub, fontsize=7, ha="center", color="#555")
 
-    bottle(6.8, 8.4, AMBER, "OIL", "50 cSt + 2% Span 80")
-    bottle(4.0, 5.6, BLUE, "WATER", "DI water + dye")
+    bottle(7.0, 8.6, AMBER, "OIL", "50 cSt + 2% Span 80")
+    bottle(Y_WAT - 0.9, Y_WAT + 0.5, BLUE, "WATER", "DI water + dye")
 
     ax.plot([1.3, 1.3], [DATUM, 7.5], color=GREY, lw=1.1)
-    for yy, lab, col in ((DATUM, "0  (chip)", GREY), (4.4, "8 cm  → water", BLUE),
-                         (7.2, "18 cm → oil", AMBER)):
+    for yy, lab, col in ((DATUM, "0  (chip)", GREY),
+                         (Y_WAT, f"{cm(hw['Pd']):.1f} cm → water", BLUE),
+                         (Y_OIL, f"{cm(hw['Pc']):.1f} cm → oil", AMBER)):
         ax.plot([1.15, 1.45], [yy, yy], color=col, lw=1.5)
         ax.text(1.02, yy, lab, fontsize=8, ha="right", va="center", color=col)
 
@@ -145,17 +156,17 @@ def plumbing_png():
     ax.plot([11.4, 12.8], [7.2, 7.2], color=AMBER, lw=1.9)
     ax.plot([12.8, 12.8], [7.2, DATUM], color=AMBER, lw=1.9)
     ax.plot([12.8, 14.4], [DATUM, DATUM], color=AMBER, lw=1.9)
-    ax.text(8.9, 6.25, "OIL RESISTOR   12 cm × 1.0 mm ID   (or 77 cm × 1/16″)",
-            fontsize=8.5, ha="center", color=AMBER)
+    assert abs(OIL_TUBE_ID - INCH / 16) < 1e-9
+    ax.text(8.9, 6.25, f"OIL RESISTOR   {hw['oil_tube_L']*100:.0f} cm × 1/16″ ID   "
+            "(+ 1/4″ ID delivery)", fontsize=8.5, ha="center", color=AMBER)
 
     # water: low route, rises into the tee from below
-    ax.plot([4.8, 4.8], [4.4, 0.8], color=BLUE, lw=1.9)
-    ax.plot([4.8, 6.4], [0.8, 0.8], color=BLUE, lw=1.9)
+    ax.plot([4.8, 5.3, 5.3, 6.4], [Y_WAT, Y_WAT, 0.8, 0.8], color=BLUE, lw=1.9)
     coil(6.4, 11.4, 0.8, BLUE)
     ax.plot([11.4, 16.4], [0.8, 0.8], color=BLUE, lw=1.9)
     ax.plot([16.4, 16.4], [0.8, 1.4], color=BLUE, lw=1.9)
-    ax.text(8.9, 0.02, "WATER RESISTOR   23 cm × 0.4 mm ID   (or 55 cm × 0.5 mm)",
-            fontsize=8.5, ha="center", color=BLUE)
+    ax.text(8.9, 0.02, f"WATER RESISTOR   {hw['water_tube_L']*100:.0f} cm × "
+            f"{WATER_TUBE_ID*1e3:.1f} mm ID", fontsize=8.5, ha="center", color=BLUE)
 
     # chip: main channel across, water stub rising to meet it -> clean tee
     ax.add_patch(FancyBboxPatch((14.4, 1.4), 4.4, 2.3, boxstyle="round,pad=0.06",
@@ -163,7 +174,8 @@ def plumbing_png():
     ax.plot([14.4, 18.8], [DATUM, DATUM], color=INK, lw=2.8, solid_capstyle="round")
     ax.plot([16.4, 16.4], [1.4, DATUM], color=INK, lw=2.8, solid_capstyle="round")
     ax.text(16.6, 3.32, "CHIP", fontsize=10, ha="center", color=INK, weight="bold")
-    ax.text(16.6, 1.05, "a tee + a 25 mm observation run", fontsize=7.5,
+    ax.text(16.6, 1.05, f"a tee + a {OUT_PORT[0] - JUNCTION[0]:.0f} mm observation run",
+            fontsize=7.5,
             ha="center", color="#555")
 
     ax.plot([18.8, 20.6], [DATUM, DATUM], color="#5A6B7A", lw=1.9)
@@ -177,11 +189,12 @@ def plumbing_png():
     ax.text(0.2, 10.0, "MCC v2 plumbing — 600 µm chip, hydrostatic actuation",
             fontsize=12.5, weight="bold", color=INK)
     ax.text(0.2, 9.35, "Bottle height sets the pressure (1 cm water ≈ 98 Pa); tubing sets the "
-            "resistance. The chip does neither — so its dimensions need not be precise.",
+            "inlet resistances and is what you trim. The outlet raises both heads equally.",
             fontsize=9, color="#444", va="center")
     ax.text(0.2, -0.75, "The Mariotte air tube fixes pressure at the tube mouth, so the drive does "
-            "not sag as the bottle drains.  Mount both bottles on one motorised\nvertical axis and "
-            "the two column heights become the chamber's two actuators.", fontsize=8, color="#555",
+            "not sag as the bottle drains.  Mount each bottle on its own motorised\nvertical axis and "
+            "the two column heights become the chamber's two actuators.  Discharge the outlet "
+            "at chip level.", fontsize=8, color="#555",
             va="top")
     ax.set_xlim(0, 23.5); ax.set_ylim(-1.6, 10.5); ax.axis("off")
     plt.tight_layout(); plt.savefig(HERE / "mcc_plumbing.png", dpi=170, bbox_inches="tight")

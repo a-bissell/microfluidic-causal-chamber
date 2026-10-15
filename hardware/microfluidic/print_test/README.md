@@ -50,7 +50,7 @@ H sections.
 - **Alpha Clear at 100 µm.** Every Z dimension is a multiple of 100 µm, so no
   feature lands between layers.
 - **Flush channels by syringe with IPA *before* curing.** A wash bath won't
-  push resin out of a 45 mm enclosed channel, and anything left inside cures
+  push resin out of a 21 mm enclosed channel, and anything left inside cures
   solid in the Wash+Cure.
 
 ### What to expect
@@ -69,14 +69,17 @@ H sections.
 
 - **T-chip coordinates are imported** from `../gen_guide_diagrams.py`, so the
   printed twin follows the v2 drawing if it changes.
-- **The T-chips are the v2 drawing as drawn: 20 mm approach, 25 mm outlet,
-  45 mm of enclosed oil path.** That is the hard drainage case on purpose — if
-  it drains, anything shorter will. It also means these chips carry ~70% of
-  the system's flow resistance, and with the BOM's resistor tubing they come
-  to **~2.7–2.9× the resistance the simulations assume**: the tubing was sized
-  for the simulation's short 2 mm / 4 mm chip, not this drawing. Expect to
-  need roughly 2.7× the plan's head for the design flow — so leak-test at
-  ≥ 30 cm of water, not 10.
+- **The T-chips are the v2 drawing as drawn: 6 mm approach, 15 mm outlet,
+  21 mm of enclosed main channel plus a 7.8 mm water leg.** The runs are
+  short so the off-chip tubing does the hydraulic work: the approach is 30%
+  of the oil path, and the outlet is the one element that cannot match the
+  simulation — 9× its resistance, which raises the junction pressure and
+  both heads by 758 Pa at 800 µm. With the BOM's tubing the flows land
+  within 1% of the simulated ones at the plan's heads: **17.7 / 12.7 cm of
+  water at 800 µm, 30.9 / 21.7 cm at 600 µm** (σ = 30 mN/m; plan §2.2,
+  [`../size_resistors.py`](../size_resistors.py)). Leak-test T800 at
+  ≥ 30 cm and T600 at ≥ 45 cm of water — about 1.5× the design heads, which
+  covers the top of the plan's sweep.
 - **Luer sockets are slip, not lock.** ISO 80369-7 / 594-1 female: opening
   4.270–4.315 mm (4.2925 used), 6% taper on diameter, ≥ 7.5 mm deep. A
   nominal 3.925 mm male tip seats about 6.1 mm in. Checked against the

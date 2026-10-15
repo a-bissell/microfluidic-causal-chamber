@@ -20,10 +20,13 @@ CNC-milled PMMA (single 1/64" endmill, 0.4 mm deep), 3M 468MP bonding,
 into the blank. The simulation carries them as in-domain channels (a 46 mm
 oil feed, an 80 µm × 27 mm water leg) purely because a pressure boundary
 condition needs the resistance to live somewhere and the solver has no
-lumped-resistance BC; the junction only ever sees a flow rate. Tubing is
-sized in the BOM: at 800 µm, ~19 cm of 1/16" ID oil-side and ~20 cm of
-0.5 mm ID water-side, which together with the chip's own channels reproduce
-the simulated path resistance to 4.6%.
+lumped-resistance BC; the junction only ever sees a flow rate. Bench
+tubing is sized element by element against this network by
+[`hardware/microfluidic/size_resistors.py`](../../../hardware/microfluidic/size_resistors.py):
+at 800 µm, 15.0 cm of 1/16" ID oil-side and 14.5 cm of 0.5 mm ID
+water-side, each within 1.1% of the simulated inlet resistance. The bench
+chip's longer outlet raises the junction pressure, so the bench heads are
+these pressures + 758 Pa (plan §2.2).
 
 ## Operating point (sim reference values)
 

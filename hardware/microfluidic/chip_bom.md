@@ -9,11 +9,15 @@ hydrostatically. Two numbers set most of this list:
 | | | |
 |---|---|---|
 | Tool | **1/32" (0.794 mm)** endmill | stiffness goes as d⁴, so this is **16× stiffer** than the 1/64" a 400 µm chip needs — the chip does not require a precision CNC |
-| Drive | **980 / 490 Pa** = **10.0 / 5.0 cm** of water | pressure scales as 1/w², so the operating point is a bottle 10 cm above the chip — no compressor, no regulators |
+| Drive | **1740 / 1250 Pa** = **17.7 / 12.7 cm** of water | pressure scales as 1/w² (600 µm: 30.9 / 21.7 cm), so the operating point is a bottle under 20 cm above the chip — no compressor, no regulators |
 
-Both measured, not designed:
+The simulated operating point is measured, not designed:
 [`scaleup_2026-07`](../../simulation/openfoam/results/scaleup_2026-07/) and
 [`mill3d800_2026-08`](../../simulation/openfoam/results/mill3d800_2026-08/).
+The simulation drives 980 / 490 Pa; the bench adds 758 Pa to both because
+the real chip's 15 mm outlet raises the junction pressure (plan §2.2,
+[`size_resistors.py`](size_resistors.py)). All heads assume σ = 30 mN/m and
+scale with it.
 
 ---
 
@@ -37,7 +41,7 @@ the same technique as at 400 µm, just with a tool that does not snap.
 **2. Fluid Handling / Actuation (hydrostatic, motorised)**
 
 Replaces the compressor + electronic-regulator rig entirely. The operating
-point is a bottle 10 cm above the chip; see §2.2 of the plan for why, and
+point is a bottle 17.7 cm above the chip; see §2.2 of the plan for why, and
 for the Mariotte drift numbers that make the air tube non-optional.
 
 | Item | Quantity | Low Cost Option | Medium Cost Option | High Cost Option | Notes |
@@ -45,8 +49,8 @@ for the Mariotte drift numbers that make the air tube non-optional.
 | Mariotte reservoirs | 2 | ~$10-20 (0.5 L HDPE bottles, drilled caps, rigid air tube) | ~$30-60 (lab media bottles + GL45 port caps) | ~$100+ (commercial microfluidic reservoirs) | **Mariotte, not just a raised bottle.** A vented air tube to a fixed depth holds the head constant as the bottle drains. Without it the head falls **14.7 mm/hr (oil) and 4.3 mm/hr (water)** — out of the operating window in 2-4 h, mid-protocol. These need to vent, not seal. |
 | Motorised vertical axis | 2 | **~$0-50 (salvaged 3D printer Z axis)** | ~$30-50 each (NEMA17 + T8 leadscrew linear rail) | ~$200+ each (motorised lab jack / linear stage) | This is the actuator **and** the sensor — 0.1 mm ≈ 0.98 Pa, ~250× better than a cheap transducer, with no calibration drift. 200 mm travel covers the whole window several times. Two independent axes: one per phase. |
 | Stepper drivers | 2 | ~$2-5 each (A4988 / DRV8825) | ~$10-20 (TMC silent drivers) | — | Or reuse the donor printer's controller board and drive it over serial/G-code. |
-| **Flow-resistor tubing** | 2 lengths | ~$10-25 (PTFE, cut to length) | ~$25-50 (PEEK for the water side) | $50+ | **A functional component, not plumbing.** Sized for the 800 µm chip: **oil ≈ 19 cm of 1/16" (1.59 mm) ID**, **water ≈ 20 cm of 0.5 mm ID**. Analytic first cuts — trim on the bench to match measured flow. (600 µm: ~12 cm of 1.0 mm ID oil, ~23 cm of 0.4 mm ID water.) |
-| Delivery tubing | ~2-3 m | ~$10-20 (silicone/Tygon) | ~$20-40 (Tygon) | $50+ (PTFE) | Reservoirs to chip. Low compliance matters less than it did under gas pressure, but avoid soft-walled tube on the resistor runs. |
+| **Flow-resistor tubing** | 2 lengths | ~$10-25 (PTFE, cut to length) | ~$25-50 (PEEK for the water side) | $50+ | **A functional component, not plumbing.** Sized for the 800 µm chip as drawn (6 mm approach, 15 mm outlet): **oil 15.0 cm of 1/16" (1.59 mm) ID**, **water 14.5 cm of 0.5 mm ID** — each reproduces the simulated inlet resistance to within 1.1% (plan §2.2). (600 µm: 48.5 cm of 1/16" ID oil, 47 cm of 0.5 mm ID water.) A ±0.05 mm ID tolerance on 0.5 mm tube moves its resistance by −32% / +52% (R ∝ d⁻⁴), so trim on the bench to match measured flow. Buy a metre of each. |
+| Delivery tubing | ~2-3 m | ~$10-20 (silicone/Tygon) | ~$20-40 (Tygon) | $50+ (PTFE) | Reservoirs to resistors, and chip to waste. **The ID is part of the hydraulic budget:** oil delivery **1/4" ID** (50 cm adds 0.9% to the oil path; 1/8" ID would add 14%), water 1/16" ID, outlet ≤ 10 cm of **1/8" ID** discharging at chip level (each cm below the chip pulls the junction down ~94 Pa). Low compliance matters less than it did under gas pressure, but avoid soft-walled tube on the resistor runs. |
 | Fittings/Connectors | Set | ~$10-30 (plastic Luer, barbs, tees) | ~$30-70 (Luer locks) | $70+ (Upchurch-class) | Connects tubing to ports and reservoirs. |
 
 *Not required:* air compressor / N₂ cylinder, electronic pressure controllers,
